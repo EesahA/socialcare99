@@ -2,15 +2,28 @@
   text-align: center;
 }
 
-.home h1 {
-  color: #2c3e50;
-  margin-bottom: 1rem;
+.home-header {
+  margin-bottom: 3rem;
+  padding: 2rem 0;
 }
 
-.home p {
-  color: #7f8c8d;
-  font-size: 1.1rem;
+.logo-container {
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.home-header h1 {
+  color: #2c3e50;
+  margin: 1rem 0;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.home-header p {
+  color: #7f8c8d;
+  font-size: 1.2rem;
+  margin: 0;
 }
 
 .features {
@@ -20,6 +33,7 @@
 .features h2 {
   color: #2c3e50;
   margin-bottom: 2rem;
+  font-size: 2rem;
 }
 
 .features-grid {
@@ -51,4 +65,18 @@
 .feature-card p {
   color: #7f8c8d;
   margin: 0;
+}
+
+@media (max-width: 768px) {
+  .home-header h1 {
+    font-size: 2rem;
+  }
+  
+  .home-header p {
+    font-size: 1rem;
+  }
+  
+  .features h2 {
+    font-size: 1.5rem;
+  }
 }
