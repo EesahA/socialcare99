@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 const Login = () => {
@@ -7,39 +8,51 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  // Function to get user-friendly error messages
+  const getErrorMessage = (errorCode) => {
+    switch (errorCode) {
+      case 'auth/user-not-found':
+        return 'No account found with this email address. Please check your email or create a new account.';
+      case 'auth/wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled. Please contact support.';
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your internet connection and try again.';
+      default:
+        return 'Failed to sign in. Please check your credentials and try again.';
+    }
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     
-    // Basic validation
     if (!loginForm.email || !loginForm.password) {
       setError('Please enter both email and password');
       return;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(loginForm.email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
-    // Here you would typically make an API call to authenticate
-    // For now, we'll just simulate a successful login
-    setIsLoggedIn(true);
-    
-    // Redirect to home page after successful login
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      await login(loginForm.email, loginForm.password);
       navigate('/');
-    }, 2000);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+    } catch (error) {
+      console.error('Login error:', error);
+      const userFriendlyError = getErrorMessage(error.code);
+      setError(userFriendlyError);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -47,23 +60,11 @@ const Login = () => {
       ...loginForm,
       [e.target.name]: e.target.value
     });
+    // Clear error when user starts typing
+    if (error) {
+      setError('');
+    }
   };
-
-  if (isLoggedIn) {
-    return (
-      <div className="login-page">
-        <div className="login-container success">
-          <div className="success-icon">✓</div>
-          <h2>Login Successful!</h2>
-          <p>Welcome to Social Care 365!</p>
-          <p className="redirect-message">Redirecting to home page...</p>
-          <button onClick={handleLogout} className="logout-btn">
-            Logout
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="login-page">
@@ -72,6 +73,13 @@ const Login = () => {
           <h2>Welcome Back</h2>
           <p>Sign in to access your Social Care 365 account</p>
         </div>
+        
+        {error && (
+          <div className="error-message">
+            <div className="error-icon">⚠️</div>
+            <div className="error-text">{error}</div>
+          </div>
+        )}
         
         <form onSubmit={handleLogin} className="login-form">
           <div className="form-group">
@@ -102,15 +110,13 @@ const Login = () => {
             />
           </div>
           
-          {error && <div className="error-message">{error}</div>}
-          
-          <button type="submit" className="login-btn">
-            Sign In
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
         
         <div className="login-footer">
-          <p>Don't have an account? <a href="#" className="link">Contact your administrator</a></p>
+          <p>Don't have an account? <Link to="/register" className="link">Create Account</Link></p>
         </div>
       </div>
     </div>
