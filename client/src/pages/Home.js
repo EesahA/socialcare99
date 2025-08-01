@@ -1,11 +1,17 @@
 import React from 'react';
+import Logo from '../components/Logo';
 import './Home.css';
 
 const Home = () => {
   return (
     <div className="home">
-      <h1>Welcome to Social Care 365</h1>
-      <p>Your All in One Social Care management application.</p>
+      <div className="home-header">
+        <div className="logo-container">
+          <Logo size="large" />
+        </div>
+        <h1>Welcome to Social Care 365</h1>
+        <p>Your All in One Social Care management application.</p>
+      </div>
       
       <div className="features">
         <h2>Key Features</h2>

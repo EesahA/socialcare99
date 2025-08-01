@@ -29,7 +29,7 @@ const Layout = ({ children }) => {
     <div className="layout">
       <header className="header">
         <div className="container">
-          <h1 className="logo">
+          <h1 className="logo-text">
             <Link to="/">Social Care 365</Link>
           </h1>
           <nav className="nav">
