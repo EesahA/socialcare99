@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 import './Register.css';
 
 const Register = () => {
@@ -13,25 +13,20 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
   const navigate = useNavigate();
 
-  // Function to get user-friendly error messages
-  const getErrorMessage = (errorCode) => {
-    switch (errorCode) {
-      case 'auth/email-already-in-use':
-        return 'An account with this email already exists. Please try signing in instead.';
-      case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
-      case 'auth/weak-password':
-        return 'Password should be at least 6 characters long.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password accounts are not enabled. Please contact support.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your internet connection and try again.';
-      default:
-        return 'Failed to create account. Please try again.';
+  // Function to validate email domain
+  const validateEmailDomain = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address.';
     }
+    
+    if (!email.toLowerCase().endsWith('.gov.uk')) {
+      return 'Only .gov.uk email addresses are allowed for registration.';
+    }
+    
+    return null; // No error
   };
 
   const handleChange = (e) => {
@@ -39,7 +34,6 @@ const Register = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    // Clear error when user starts typing
     if (error) {
       setError('');
     }
@@ -48,23 +42,47 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate email domain first
+    const emailError = validateEmailDomain(formData.email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+      setError('Passwords do not match');
+      return;
     }
 
     if (formData.password.length < 6) {
-      return setError('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters');
+      return;
     }
 
     try {
       setError('');
       setLoading(true);
-      await signup(formData.email, formData.password, formData.firstName, formData.lastName);
+      
+      const response = await axios.post('http://localhost:3000/api/auth/register', {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: 'caregiver' // Default role
+      });
+
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
       navigate('/');
     } catch (error) {
       console.error('Registration error:', error);
-      const userFriendlyError = getErrorMessage(error.code);
-      setError(userFriendlyError);
+      if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('Failed to create account. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -76,6 +94,9 @@ const Register = () => {
         <div className="register-header">
           <h2>Create Account</h2>
           <p>Join Social Care 365 today</p>
+          <div className="email-notice">
+            <p>⚠️ Only .gov.uk email addresses are allowed</p>
+          </div>
         </div>
         
         {error && (
@@ -125,9 +146,12 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               className="form-input"
-              placeholder="Enter your email address"
+              placeholder="Enter your .gov.uk email address"
               required
             />
+            <div className="input-hint">
+              Must end with .gov.uk
+            </div>
           </div>
           
           <div className="form-group">

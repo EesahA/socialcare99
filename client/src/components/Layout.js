@@ -1,12 +1,28 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Layout.css';
 
 const Layout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const isActive = (path) => {
     return location.pathname === path ? 'active' : '';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/login');
   };
 
   return (
@@ -20,9 +36,20 @@ const Layout = ({ children }) => {
             <Link to="/" className={`nav-link ${isActive('/')}`}>
               Home
             </Link>
-            <Link to="/login" className={`nav-link ${isActive('/login')}`}>
-              Login
-            </Link>
+            {!user ? (
+              <>
+                <Link to="/login" className={`nav-link ${isActive('/login')}`}>
+                  Login
+                </Link>
+                <Link to="/register" className={`nav-link ${isActive('/register')}`}>
+                  Register
+                </Link>
+              </>
+            ) : (
+              <button onClick={handleLogout} className="logout-btn-nav">
+                Logout
+              </button>
+            )}
           </nav>
         </div>
       </header>
