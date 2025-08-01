@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 import './Login.css';
 
 const Login = () => {
@@ -10,28 +10,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Function to get user-friendly error messages
-  const getErrorMessage = (errorCode) => {
-    switch (errorCode) {
-      case 'auth/user-not-found':
-        return 'No account found with this email address. Please check your email or create a new account.';
-      case 'auth/wrong-password':
-        return 'Incorrect password. Please try again.';
-      case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
-      case 'auth/user-disabled':
-        return 'This account has been disabled. Please contact support.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your internet connection and try again.';
-      default:
-        return 'Failed to sign in. Please check your credentials and try again.';
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -44,12 +23,23 @@ const Login = () => {
 
     try {
       setLoading(true);
-      await login(loginForm.email, loginForm.password);
+      const response = await axios.post('http://localhost:3000/api/auth/login', {
+        email: loginForm.email,
+        password: loginForm.password
+      });
+
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
-      const userFriendlyError = getErrorMessage(error.code);
-      setError(userFriendlyError);
+      if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('Failed to sign in. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +50,6 @@ const Login = () => {
       ...loginForm,
       [e.target.name]: e.target.value
     });
-    // Clear error when user starts typing
     if (error) {
       setError('');
     }
