@@ -75,7 +75,10 @@ const Register = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      navigate('/home');
+      // Dispatch custom event to notify Layout component
+      window.dispatchEvent(new Event('userLogin'));
+      
+      navigate('/home'); // Changed back to '/home' (Dashboard)
     } catch (error) {
       console.error('Registration error:', error);
       if (error.response?.data?.error) {
