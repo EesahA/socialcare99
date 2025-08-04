@@ -32,7 +32,10 @@ const Login = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      navigate('/home'); // Changed from '/' to '/home'
+      // Dispatch custom event to notify Layout component
+      window.dispatchEvent(new Event('userLogin'));
+      
+      navigate('/home'); // Changed back to '/home' (Dashboard)
     } catch (error) {
       console.error('Login error:', error);
       if (error.response?.data?.error) {
