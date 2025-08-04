@@ -32,7 +32,7 @@ const Login = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      navigate('/');
+      navigate('/home'); // Changed from '/' to '/home'
     } catch (error) {
       console.error('Login error:', error);
       if (error.response?.data?.error) {
