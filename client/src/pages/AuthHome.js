@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Calendar from '../components/Calendar';
+import KanbanBoard from '../components/KanbanBoard';
 import './AuthHome.css';
 
 const AuthHome = () => {
@@ -13,26 +14,6 @@ const AuthHome = () => {
     { title: 'Blocked Tasks', value: 3, color: '#e74c3c', icon: '❌' },
     { title: 'Overdue Tasks', value: 5, color: '#e67e22', icon: '⚠️' }
   ];
-
-  // Sample data for the Kanban board
-  const [kanbanData, setKanbanData] = useState({
-    Backlog: [
-      { id: 1, title: 'Review client intake forms' },
-      { id: 2, title: 'Prepare care plan draft' },
-      { id: 3, title: 'Schedule initial assessment' }
-    ],
-    'In Progress': [
-      { id: 4, title: 'Complete risk assessment' },
-      { id: 5, title: 'Update care plan' }
-    ],
-    Blocked: [
-      { id: 6, title: 'Awaiting medical records' }
-    ],
-    Done: [
-      { id: 7, title: 'Initial client meeting' },
-      { id: 8, title: 'Documentation review' }
-    ]
-  });
 
   return (
     <div className="auth-home">
@@ -57,7 +38,6 @@ const AuthHome = () => {
         </div>
         
         <div className="schedule-section">
-          <h2>Upcoming Schedule</h2>
           <Calendar />
         </div>
       </div>
@@ -65,20 +45,7 @@ const AuthHome = () => {
       {/* Kanban Board Section */}
       <div className="kanban-section">
         <h2>Task Management</h2>
-        <div className="kanban-board">
-          {Object.keys(kanbanData).map((column) => (
-            <div key={column} className="kanban-column">
-              <h3 className="kanban-column-header">{column}</h3>
-              <div className="kanban-column-content">
-                {kanbanData[column].map((task) => (
-                  <div key={task.id} className="kanban-task">
-                    {task.title}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <KanbanBoard showCreateButtons={false} />
       </div>
     </div>
   );

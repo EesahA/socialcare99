@@ -1,57 +1,50 @@
 .tasks-page {
-  min-height: 100vh;
-  background-color: #f8f9fa;
-}
-
-/* Tasks Content */
-.tasks-content {
   padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.tasks-header-section {
+.tasks-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
 }
 
-.tasks-title-section h1 {
+.tasks-header h1 {
+  margin: 0;
   color: #2c3e50;
-  margin: 0 0 0.5rem 0;
   font-size: 2rem;
   font-weight: 600;
 }
 
-.tasks-title-section p {
-  color: #7f8c8d;
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.create-task-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.create-task-button {
   background: #27ae60;
   color: white;
   border: none;
-  border-radius: 8px;
   padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 6px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
 }
 
-.create-task-btn:hover {
+.create-task-button:hover {
   background: #229954;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+  box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
 }
 
-.btn-icon {
-  font-size: 1.1rem;
+.create-task-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
+}
+
+/* Add spacing between header and kanban board */
+.tasks-content {
+  margin-top: 2rem;
 }
 
 /* Kanban Board */
@@ -158,23 +151,18 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .tasks-content {
+  .tasks-page {
     padding: 1rem;
   }
   
-  .tasks-header-section {
+  .tasks-header {
     flex-direction: column;
     gap: 1rem;
-    align-items: flex-start;
+    align-items: stretch;
   }
   
-  .tasks-title-section h1 {
+  .tasks-header h1 {
     font-size: 1.5rem;
-  }
-  
-  .create-task-btn {
-    width: 100%;
-    justify-content: center;
   }
   
   .kanban-board {
