@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Calendar from '../components/Calendar';
 import './AuthHome.css';
 
 const AuthHome = () => {
@@ -8,72 +9,70 @@ const AuthHome = () => {
   // Sample data for summary cards
   const summaryData = [
     { title: 'Total Cases', value: 24, color: '#3498db', icon: '🗂️' },
-    { title: 'Pending Tasks', value: 12, color: '#2ecc71', icon: '⏳' },
-    { title: 'Blocked Tasks', value: 3, color: '#f1c40f', icon: '❌' },
-    { title: 'Overdue Tasks', value: 7, color: '#e74c3c', icon: '👤' }
+    { title: 'Pending Tasks', value: 12, color: '#f1c40f', icon: '⏳' },
+    { title: 'Blocked Tasks', value: 3, color: '#e74c3c', icon: '❌' },
+    { title: 'Overdue Tasks', value: 5, color: '#e67e22', icon: '⚠️' }
   ];
 
   // Sample data for the Kanban board
   const [kanbanData, setKanbanData] = useState({
     Backlog: [
+      { id: 1, title: 'Review client intake forms' },
+      { id: 2, title: 'Prepare care plan draft' },
+      { id: 3, title: 'Schedule initial assessment' }
     ],
     'In Progress': [
+      { id: 4, title: 'Complete risk assessment' },
+      { id: 5, title: 'Update care plan' }
     ],
     Blocked: [
+      { id: 6, title: 'Awaiting medical records' }
     ],
     Done: [
+      { id: 7, title: 'Initial client meeting' },
+      { id: 8, title: 'Documentation review' }
     ]
   });
 
   return (
     <div className="auth-home">
-      {/* Welcome Content */}
-      <div className="auth-home-content">
-        <h1>Welcome, {user?.firstName || 'User'}!</h1>
-        <p>This is your dashboard. More features coming soon.</p>
-      </div>
-
-      {/* Dashboard Top Section - Split into two columns */}
-      <div className="dashboard-top-section">
-        <div className="dashboard-left">
-          <h2 className="section-title">Summary</h2>
-          <div className="summary-cards-grid">
-            {summaryData.map((card) => (
-              <div className="summary-card" key={card.title}>
-                <div className="summary-card-icon" style={{ backgroundColor: card.color + '20' }}>
-                  <span style={{ color: card.color }}>{card.icon}</span>
-                </div>
+      {/* Summary Cards Section */}
+      <div className="dashboard-sections">
+        <div className="summary-section">
+          <div className="summary-grid">
+            {summaryData.map((card, index) => (
+              <div key={index} className="summary-card" style={{ borderLeftColor: card.color }}>
                 <div className="summary-card-content">
-                  <div className="summary-card-value">{card.value}</div>
-                  <div className="summary-card-title">{card.title}</div>
+                  <div className="summary-card-icon" style={{ color: card.color }}>
+                    {card.icon}
+                  </div>
+                  <div className="summary-card-info">
+                    <h3>{card.title}</h3>
+                    <p className="summary-card-value">{card.value}</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
         
-        <div className="dashboard-right">
-          <h2 className="section-title">Upcoming Schedule</h2>
-          <div className="schedule-placeholder">
-            <p>Calendar and upcoming events will be displayed here</p>
-          </div>
+        <div className="schedule-section">
+          <h2>Upcoming Schedule</h2>
+          <Calendar />
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* Kanban Board Section */}
       <div className="kanban-section">
-        <h2 className="kanban-title">Tasks Board</h2>
+        <h2>Task Management</h2>
         <div className="kanban-board">
           {Object.keys(kanbanData).map((column) => (
-            <div className="kanban-column" key={column}>
-              <div className="kanban-column-header">
-                <h3 className="kanban-column-title">{column}</h3>
-                <span className="kanban-column-count">{kanbanData[column].length}</span>
-              </div>
-              <div className="kanban-tasks">
+            <div key={column} className="kanban-column">
+              <h3 className="kanban-column-header">{column}</h3>
+              <div className="kanban-column-content">
                 {kanbanData[column].map((task) => (
-                  <div className="kanban-task" key={task.id}>
-                    <div className="task-title">{task.title}</div>
+                  <div key={task.id} className="kanban-task">
+                    {task.title}
                   </div>
                 ))}
               </div>
