@@ -16,6 +16,8 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [prefillStatus, setPrefillStatus] = useState(null);
+  const [draggedTask, setDraggedTask] = useState(null);
+  const [dragOverColumn, setDragOverColumn] = useState(null);
 
   const fetchTasks = async () => {
     try {
@@ -91,6 +93,66 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
     setSelectedTask(null);
   };
 
+  // Drag and Drop handlers
+  const handleDragStart = (e, task) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
+  };
+
+  const handleDragOver = (e, columnName) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(columnName);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = async (e, targetColumn) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+
+    if (!draggedTask || draggedTask.status === targetColumn) {
+      setDraggedTask(null);
+      return;
+    }
+
+    try {
+      // Update task status in backend
+      const response = await axios.put(`http://localhost:3000/api/tasks/${draggedTask._id}`, {
+        ...draggedTask,
+        status: targetColumn
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      // Update local state
+      setKanbanData(prev => {
+        const newData = { ...prev };
+        
+        // Remove from original column
+        newData[draggedTask.status] = newData[draggedTask.status].filter(
+          task => task._id !== draggedTask._id
+        );
+        
+        // Add to target column
+        newData[targetColumn] = [...newData[targetColumn], response.data];
+        
+        return newData;
+      });
+
+      setDraggedTask(null);
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      setDraggedTask(null);
+    }
+  };
+
   if (loading) {
     return <div className="kanban-loading">Loading tasks...</div>;
   }
@@ -99,7 +161,13 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
     <>
       <div className="kanban-board">
         {Object.keys(kanbanData).map((column) => (
-          <div key={column} className="kanban-column">
+          <div 
+            key={column} 
+            className={`kanban-column ${dragOverColumn === column ? 'drag-over' : ''}`}
+            onDragOver={(e) => handleDragOver(e, column)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, column)}
+          >
             <div className="kanban-column-header">
               <h3>{column}</h3>
               <span className="task-count">{kanbanData[column].length}</span>
@@ -108,11 +176,16 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
               {kanbanData[column].map((task) => (
                 <div 
                   key={task._id} 
-                  className="kanban-task"
+                  className={`kanban-task ${draggedTask?._id === task._id ? 'dragging' : ''}`}
                   onClick={() => handleTaskClick(task)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task)}
                 >
                   <div className="task-header">
-                    <h4 className="task-title">{task.title}</h4>
+                    <div className="task-title-section">
+                      <h4 className="task-title">{task.title}</h4>
+                      <div className="drag-handle">⋮⋮</div>
+                    </div>
                     <div 
                       className="priority-indicator"
                       style={{ backgroundColor: getPriorityColor(task.priority) }}
