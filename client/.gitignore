@@ -25,6 +25,7 @@ yarn-error.log*
 .eslintcache
 .cache/
 *.cache
+node_modules/.cache/
 
 # IDE files
 .vscode/
