@@ -66,6 +66,21 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
     }
   };
 
+  const getDueDateColor = (dueDate) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return '#e74c3c'; // Red for overdue tasks
+    } else if (diffDays <= 3) {
+      return '#f39c12'; // Amber for due within 3 days
+    } else {
+      return '#6c757d'; 
+    }
+  };
+
   const handleAddTask = (status) => {
     setPrefillStatus(status);
     setShowTaskForm(true);
@@ -199,7 +214,12 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
                     {task.assignedTo && (
                       <span className="task-assignee">Assigned: {task.assignedTo}</span>
                     )}
-                    <span className="task-due">Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                    <span 
+                      className="task-due"
+                      style={{ color: getDueDateColor(task.dueDate) }}
+                    >
+                      Due: {new Date(task.dueDate).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               ))}

@@ -248,3 +248,18 @@
 .kanban-task.dragging .drag-handle {
   color: #3498db;
 } 
+
+.task-due {
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.task-due.overdue {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.task-due.urgent {
+  color: #f39c12;
+  font-weight: 600;
+} 

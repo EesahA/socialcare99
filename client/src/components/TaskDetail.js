@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Comment from './Comment';
 import './TaskDetail.css';
 
 const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => {
@@ -16,6 +17,31 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(user);
+    if (task._id) {
+      fetchComments();
+    }
+  }, [task._id]);
+
+  const fetchComments = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/tasks/${task._id}/comments`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setComments(response.data);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,7 +51,22 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
     }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      setError('Task title is required');
+      return;
+    }
+    if (!formData.dueDate) {
+      setError('Due date is required');
+      return;
+    }
+    if (!formData.caseId.trim() || !formData.caseName.trim()) {
+      setError('Case ID and Case Name are required');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
@@ -86,6 +127,42 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
     });
     setIsEditing(false);
     setError('');
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      setCommentLoading(true);
+      
+      const response = await axios.post(`http://localhost:3000/api/tasks/${task._id}/comments`, {
+        text: newComment.trim()
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      setComments(prev => [response.data, ...prev]);
+      setNewComment('');
+    } catch (error) {
+      alert('Failed to add comment. Please try again.');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const getInitials = (firstName, lastName) => {
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  const getAvatarColor = (userId) => {
+    const colors = [
+      '#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6',
+      '#1abc9c', '#e67e22', '#34495e', '#16a085', '#c0392b'
+    ];
+    return colors[userId.charCodeAt(userId.length - 1) % colors.length];
   };
 
   if (!isOpen) return null;
@@ -226,6 +303,65 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
               <span className="meta-value">
                 {task.updatedAt ? new Date(task.updatedAt).toLocaleString() : 'N/A'}
               </span>
+            </div>
+          </div>
+
+          {/* Comments Section */}
+          <div className="comments-section">
+            <div className="comments-header">
+              <h3 className="comments-title">Comments</h3>
+              <span className="comment-count">{comments.length}</span>
+            </div>
+
+            <div className="comment-input-section">
+              <div className="comment-input-container">
+                <div className="comment-input-avatar">
+                  <div 
+                    className="avatar-initials"
+                    style={{ backgroundColor: getAvatarColor(currentUser?.id || '') }}
+                  >
+                    {getInitials(currentUser?.firstName, currentUser?.lastName)}
+                  </div>
+                </div>
+                <div className="comment-input">
+                  <textarea
+                    className="comment-textarea"
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows="3"
+                  />
+                  <div className="comment-actions">
+                    <button 
+                      className="comment-cancel-btn"
+                      onClick={() => setNewComment('')}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="comment-submit-btn"
+                      onClick={handleAddComment}
+                      disabled={!newComment.trim() || commentLoading}
+                    >
+                      {commentLoading ? 'Adding...' : 'Add Comment'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="comments-list">
+              {comments.length === 0 ? (
+                <div className="comments-empty">No comments yet. Be the first to comment!</div>
+              ) : (
+                comments.map((comment) => (
+                  <Comment 
+                    key={comment._id} 
+                    comment={comment} 
+                    currentUser={currentUser}
+                  />
+                ))
+              )}
             </div>
           </div>
 
