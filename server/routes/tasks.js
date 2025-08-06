@@ -1,109 +1,91 @@
 const express = require('express');
 const Task = require('../models/Task');
 const auth = require('../middleware/auth');
-
 const router = express.Router();
 
 // Get all tasks
 router.get('/', auth, async (req, res) => {
   try {
-    const tasks = await Task.find()
-      .populate('client', 'firstName lastName')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('notes.createdBy', 'firstName lastName');
+    const tasks = await Task.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get tasks by user
-router.get('/my-tasks', auth, async (req, res) => {
-  try {
-    const tasks = await Task.find({ assignedTo: req.user._id })
-      .populate('client', 'firstName lastName')
-      .populate('notes.createdBy', 'firstName lastName');
-    res.json(tasks);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Get single task
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id)
-      .populate('client', 'firstName lastName')
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('notes.createdBy', 'firstName lastName');
-    
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-    res.json(task);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Create task
+// Create new task
 router.post('/', auth, async (req, res) => {
   try {
-    const task = new Task(req.body);
-    await task.save();
-    res.status(201).json(task);
+    const { title, description, assignedTo, dueDate, priority, status, caseId, caseName } = req.body;
+
+    if (!title || !dueDate || !caseId || !caseName) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const task = new Task({
+      title,
+      description,
+      assignedTo,
+      dueDate: new Date(dueDate),
+      priority: priority || 'Medium',
+      status: status || 'Backlog',
+      caseId,
+      caseName,
+      createdBy: req.user.id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    const savedTask = await task.save();
+    res.status(201).json(savedTask);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        details: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    res.status(500).json({ message: 'Failed to create task' });
   }
 });
 
 // Update task
 router.put('/:id', auth, async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
+      updateData,
       { new: true, runValidators: true }
     );
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-    res.json(task);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 
-// Add note to task
-router.post('/:id/notes', auth, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
     if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
+      return res.status(404).json({ message: 'Task not found' });
     }
 
-    task.notes.push({
-      content: req.body.content,
-      createdBy: req.user._id
-    });
-
-    await task.save();
     res.json(task);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Failed to update task' });
   }
 });
 
 // Delete task
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndDelete({ _id: req.params.id, createdBy: req.user.id });
+
     if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
+      return res.status(404).json({ message: 'Task not found' });
     }
+
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Failed to delete task' });
   }
 });
 

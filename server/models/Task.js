@@ -8,46 +8,63 @@ const taskSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true
-  },
-  client: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Client',
-    required: true
+    trim: true
   },
   assignedTo: {
+    type: String,
+    trim: true
+  },
+  dueDate: {
+    type: Date,
+    required: true
+  },
+  priority: {
+    type: String,
+    enum: ['Low', 'Medium', 'High'],
+    default: 'Medium'
+  },
+  status: {
+    type: String,
+    enum: ['Backlog', 'In Progress', 'Blocked', 'Complete'],
+    default: 'Backlog'
+  },
+  caseId: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  caseName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  status: {
-    type: String,
-    enum: ['pending', 'in-progress', 'completed', 'cancelled'],
-    default: 'pending'
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
-  },
-  scheduledDate: {
+  createdAt: {
     type: Date,
-    required: true
+    default: Date.now
   },
-  completedDate: Date,
-  notes: [{
-    content: String,
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
-  }]
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
 }, {
-  timestamps: true
+  timestamps: true // This automatically handles createdAt and updatedAt
+});
+
+// Pre-save middleware to ensure updatedAt is set
+taskSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Pre-update middleware for findOneAndUpdate operations
+taskSchema.pre('findOneAndUpdate', function(next) {
+  this.set({ updatedAt: new Date() });
+  next();
 });
 
 module.exports = mongoose.model('Task', taskSchema);

@@ -11,6 +11,13 @@
   padding: 1.25rem;
   min-height: 300px;
   border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.kanban-column.drag-over {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
 .kanban-column-header {
@@ -53,6 +60,7 @@
   border-left: 3px solid #3498db;
   position: relative;
   overflow: hidden;
+  user-select: none;
 }
 
 .kanban-task::before {
@@ -78,6 +86,17 @@
 
 .kanban-task:active {
   transform: translateY(-1px);
+}
+
+.kanban-task.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg) scale(0.95);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.kanban-task.dragging::before {
+  opacity: 0;
 }
 
 .task-header {
@@ -155,6 +174,22 @@
   font-size: 1.1rem;
 }
 
+/* Drag and drop visual feedback */
+.kanban-column.drag-over .add-task-button {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+
+/* Prevent text selection during drag */
+.kanban-task * {
+  pointer-events: none;
+}
+
+.kanban-task .add-task-button {
+  pointer-events: auto;
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
   .kanban-board {
@@ -171,4 +206,45 @@
   .kanban-column {
     padding: 1rem;
   }
+  
+  /* Disable drag and drop on mobile for better UX */
+  .kanban-task {
+    cursor: pointer;
+  }
+  
+  .kanban-task[draggable] {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+}
+
+.task-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+.drag-handle {
+  color: #bdc3c7;
+  font-size: 0.8rem;
+  cursor: grab;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.kanban-task:hover .drag-handle {
+  color: #95a5a6;
+}
+
+.kanban-task.dragging .drag-handle {
+  color: #3498db;
 } 
