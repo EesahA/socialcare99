@@ -147,6 +147,7 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
       setComments(prev => [response.data, ...prev]);
       setNewComment('');
     } catch (error) {
+      console.error('Failed to add comment:', error);
       alert('Failed to add comment. Please try again.');
     } finally {
       setCommentLoading(false);

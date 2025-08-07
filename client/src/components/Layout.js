@@ -107,7 +107,7 @@ const Layout = ({ children }) => {
   }
 
   // Only show header for authenticated pages
-  const showHeader = user && (location.pathname === '/home' || location.pathname === '/tasks');
+  const showHeader = user && (location.pathname === '/home' || location.pathname === '/tasks' || location.pathname === '/cases');
 
   if (!showHeader) {
     return <>{children}</>;
@@ -122,18 +122,15 @@ const Layout = ({ children }) => {
               <Link to="/home">Social Care 365</Link>
             </div>
             <nav className="nav">
-              <button 
-                className={`nav-btn ${isActive('/home')}`}
-                onClick={() => navigate('/home')}
-              >
+              <Link to="/home" className={`nav-link ${isActive('/home')}`}>
                 Dashboard
-              </button>
-              <button 
-                className={`nav-btn ${isActive('/tasks')}`}
-                onClick={() => navigate('/tasks')}
-              >
+              </Link>
+              <Link to="/tasks" className={`nav-link ${isActive('/tasks')}`}>
                 Tasks
-              </button>
+              </Link>
+              <Link to="/cases" className={`nav-link ${isActive('/cases')}`}>
+                Cases
+              </Link>
             </nav>
           </div>
           

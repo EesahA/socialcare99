@@ -17,6 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/cases', require('./routes/cases')); // Add this line
 app.use('/api', require('./routes/comments'));
 
 // Basic route
