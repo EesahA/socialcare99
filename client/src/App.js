@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AuthHome from './pages/AuthHome';
 import Tasks from './pages/Tasks';
+import Cases from './pages/Cases';
 import './App.css';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/home" element={<AuthHome />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/cases" element={<Cases />} />
         </Routes>
       </Layout>
     </Router>
