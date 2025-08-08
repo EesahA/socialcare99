@@ -32,8 +32,8 @@
 
 .comment-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
@@ -173,6 +173,24 @@
   padding: 2rem;
   color: #6c757d;
   font-style: italic;
+}
+
+.delete-comment-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  margin-left: auto;
+}
+
+.delete-comment-btn:hover {
+  opacity: 1;
+  background: #ffebee;
+  color: #d32f2f;
 }
 
 /* Responsive design */

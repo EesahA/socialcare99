@@ -20,6 +20,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/cases', require('./routes/cases')); // Add this line
 app.use('/api', require('./routes/comments'));
+app.use('/api', require('./routes/caseComments')); // Add this line
 
 // Basic route
 app.get('/', (req, res) => {
