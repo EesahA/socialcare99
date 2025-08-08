@@ -277,6 +277,102 @@
   border: 1px dashed #dee2e6;
 }
 
+.edit-form {
+  margin-bottom: 2rem;
+}
+
+.edit-form .view-field input,
+.edit-form .view-field select,
+.edit-form .view-field textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.edit-form .view-field input:focus,
+.edit-form .view-field select:focus,
+.edit-form .view-field textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.edit-form .view-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.other-case-type-input {
+  margin-top: 0.5rem;
+}
+
+.case-view-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.save-button,
+.edit-button,
+.cancel-button,
+.close-detail-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.save-button {
+  background: #27ae60;
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #229954;
+}
+
+.save-button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.edit-button {
+  background: #3498db;
+  color: white;
+}
+
+.edit-button:hover {
+  background: #2980b9;
+}
+
+.cancel-button {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-button:hover {
+  background: #5a6268;
+}
+
+.close-detail-button {
+  background: #6c757d;
+  color: white;
+}
+
+.close-detail-button:hover {
+  background: #5a6268;
+}
+
 @media (max-width: 768px) {
   .case-view-modal {
     margin: 1rem;
