@@ -23,14 +23,12 @@ const Tasks = () => {
           + Create Task
         </button>
       </div>
-
       <div className="tasks-content">
         <KanbanBoard 
           showCreateButtons={true} 
           onTaskCreated={newTask}
         />
       </div>
-
       <TaskForm
         isOpen={showTaskForm}
         onClose={() => setShowTaskForm(false)}

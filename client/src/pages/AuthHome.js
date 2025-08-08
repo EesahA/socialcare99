@@ -15,21 +15,17 @@ const AuthHome = () => {
 
   return (
     <div className="auth-home">
-      {/* Summary Cards Section */}
       <div className="dashboard-sections">
         <SummaryCards refreshTrigger={refreshTrigger} />
-        
         <div className="schedule-section">
-          <Calendar />
+          <Calendar refreshTrigger={refreshTrigger} />
         </div>
       </div>
-
-      {/* Kanban Board Section */}
       <div className="kanban-section">
         <h2>Task Management</h2>
         <KanbanBoard 
           showCreateButtons={false} 
-          onTaskCreated={handleTaskChange}
+          onTaskCreated={handleTaskChange} 
         />
       </div>
     </div>

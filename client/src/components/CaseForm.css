@@ -373,3 +373,18 @@
 .form-group input[required]:focus {
   border-left-color: #3498db;
 }
+
+.attachment-note {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.attachment-note p {
+  margin: 0;
+  color: #1976d2;
+  font-size: 0.9rem;
+  font-weight: 500;
+}

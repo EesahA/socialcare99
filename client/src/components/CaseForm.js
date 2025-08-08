@@ -30,8 +30,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
     immediateActionsTaken: '',
     clientWishesFeelings: '',
     newTasks: [],
-    nextPlannedReviewDate: '',
-    meetingNotesFile: null
+    nextPlannedReviewDate: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -81,10 +80,6 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-  };
-
-  const handleFileChange = (e) => {
-    setFormData(prev => ({ ...prev, meetingNotesFile: e.target.files[0] }));
   };
 
   const nextPage = (e) => {
@@ -204,13 +199,13 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         immediateActionsTaken: '',
         clientWishesFeelings: '',
         newTasks: [],
-        nextPlannedReviewDate: '',
-        meetingNotesFile: null
+        nextPlannedReviewDate: ''
       });
       setCurrentPage(1);
 
     } catch (err) {
       console.error('Case creation error:', err);
+      console.error('Error response:', err.response?.data);
       
       if (err.response?.data?.errors) {
         setError(`Validation errors: ${err.response.data.errors.join(', ')}`);
@@ -640,15 +635,10 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="meetingNotesFile">Upload Meeting Notes:</label>
-                <input
-                  type="file"
-                  id="meetingNotesFile"
-                  name="meetingNotesFile"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.txt"
-                />
-                <small>Accepted formats: PDF, DOC, DOCX, TXT</small>
+                <label>File Attachments:</label>
+                <div className="attachment-note">
+                  <p>📎 File attachments can be added after creating the case using the expand view.</p>
+                </div>
               </div>
             </div>
           )}

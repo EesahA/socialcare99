@@ -6,10 +6,10 @@ import './KanbanBoard.css';
 
 const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
   const [kanbanData, setKanbanData] = useState({
-    Backlog: [],
+    'Backlog': [],
     'In Progress': [],
-    Blocked: [],
-    Complete: []
+    'Blocked': [],
+    'Complete': []
   });
   const [loading, setLoading] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -21,27 +21,22 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
 
   const fetchTasks = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('http://localhost:3000/api/tasks', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
-      const grouped = response.data.reduce((acc, task) => {
-        const status = task.status || 'Backlog';
-        if (!acc[status]) acc[status] = [];
-        acc[status].push(task);
-        return acc;
-      }, {
-        Backlog: [],
-        'In Progress': [],
-        Blocked: [],
-        Complete: []
-      });
-
+      
+      const tasks = response.data;
+      const grouped = {
+        'Backlog': tasks.filter(task => task.status === 'Backlog'),
+        'In Progress': tasks.filter(task => task.status === 'In Progress'),
+        'Blocked': tasks.filter(task => task.status === 'Blocked'),
+        'Complete': tasks.filter(task => task.status === 'Complete')
+      };
+      
       setKanbanData(grouped);
     } catch (error) {
-      console.error('Failed to fetch tasks:', error);
+      console.error('Error fetching tasks:', error);
     } finally {
       setLoading(false);
     }
@@ -60,25 +55,21 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'High': return '#e74c3c';
-      case 'Medium': return '#f1c40f';
-      case 'Low': return '#2ecc71';
+      case 'Medium': return '#f39c12';
+      case 'Low': return '#27ae60';
       default: return '#95a5a6';
     }
   };
 
   const getDueDateColor = (dueDate) => {
-    const now = new Date();
+    const today = new Date();
     const due = new Date(dueDate);
-    const diffTime = due - now;
+    const diffTime = due - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return '#e74c3c'; // Red for overdue tasks
-    } else if (diffDays <= 3) {
-      return '#f39c12'; // Amber for due within 3 days
-    } else {
-      return '#6c757d'; 
-    }
+    
+    if (diffDays < 0) return '#e74c3c'; // Overdue
+    if (diffDays <= 3) return '#f39c12'; // Due soon
+    return '#27ae60'; // On time
   };
 
   const handleAddTask = (status) => {
@@ -103,74 +94,73 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
   };
 
   const handleTaskDeleted = (taskId) => {
-    fetchTasks();
+    // Remove the task from the local state
+    setKanbanData(prev => {
+      const newData = { ...prev };
+      Object.keys(newData).forEach(status => {
+        newData[status] = newData[status].filter(task => task._id !== taskId);
+      });
+      return newData;
+    });
+    
+    // Close the detail modal
     setShowTaskDetail(false);
     setSelectedTask(null);
+    
+    // Also refresh from server to ensure consistency
+    fetchTasks();
   };
 
-  // Drag and Drop handlers
   const handleDragStart = (e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target.outerHTML);
   };
 
   const handleDragOver = (e, columnName) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
     setDragOverColumn(columnName);
   };
 
   const handleDragLeave = (e) => {
-    e.preventDefault();
     setDragOverColumn(null);
   };
 
   const handleDrop = async (e, targetColumn) => {
     e.preventDefault();
     setDragOverColumn(null);
-
+    
     if (!draggedTask || draggedTask.status === targetColumn) {
       setDraggedTask(null);
       return;
     }
 
     try {
-      // Update task status in backend
-      const response = await axios.put(`http://localhost:3000/api/tasks/${draggedTask._id}`, {
-        ...draggedTask,
-        status: targetColumn
-      }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await axios.put(
+        `http://localhost:3000/api/tasks/${draggedTask._id}`,
+        { status: targetColumn },
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         }
-      });
+      );
 
       // Update local state
       setKanbanData(prev => {
         const newData = { ...prev };
-        
-        // Remove from original column
-        newData[draggedTask.status] = newData[draggedTask.status].filter(
-          task => task._id !== draggedTask._id
-        );
-        
-        // Add to target column
+        // Remove from old column
+        newData[draggedTask.status] = newData[draggedTask.status].filter(task => task._id !== draggedTask._id);
+        // Add to new column
         newData[targetColumn] = [...newData[targetColumn], response.data];
-        
         return newData;
       });
 
       setDraggedTask(null);
     } catch (error) {
-      console.error('Failed to update task status:', error);
+      console.error('Error updating task status:', error);
       setDraggedTask(null);
     }
   };
 
-  if (loading) {
-    return <div className="kanban-loading">Loading tasks...</div>;
-  }
+  if (loading) return <div className="kanban-loading">Loading tasks...</div>;
 
   return (
     <>
@@ -179,8 +169,8 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
           <div 
             key={column} 
             className={`kanban-column ${dragOverColumn === column ? 'drag-over' : ''}`}
-            onDragOver={(e) => handleDragOver(e, column)}
-            onDragLeave={handleDragLeave}
+            onDragOver={(e) => handleDragOver(e, column)} 
+            onDragLeave={handleDragLeave} 
             onDrop={(e) => handleDrop(e, column)}
           >
             <div className="kanban-column-header">
@@ -192,8 +182,8 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
                 <div 
                   key={task._id} 
                   className={`kanban-task ${draggedTask?._id === task._id ? 'dragging' : ''}`}
-                  onClick={() => handleTaskClick(task)}
-                  draggable
+                  onClick={() => handleTaskClick(task)} 
+                  draggable 
                   onDragStart={(e) => handleDragStart(e, task)}
                 >
                   <div className="task-header">
@@ -202,7 +192,7 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
                       <div className="drag-handle">⋮⋮</div>
                     </div>
                     <div 
-                      className="priority-indicator"
+                      className="priority-indicator" 
                       style={{ backgroundColor: getPriorityColor(task.priority) }}
                     ></div>
                   </div>
@@ -215,7 +205,7 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
                       <span className="task-assignee">Assigned: {task.assignedTo}</span>
                     )}
                     <span 
-                      className="task-due"
+                      className="task-due" 
                       style={{ color: getDueDateColor(task.dueDate) }}
                     >
                       Due: {new Date(task.dueDate).toLocaleDateString()}
@@ -225,7 +215,7 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
               ))}
               {showCreateButtons && (
                 <button 
-                  className="add-task-button"
+                  className="add-task-button" 
                   onClick={() => handleAddTask(column)}
                 >
                   + Add Task
@@ -235,27 +225,27 @@ const KanbanBoard = ({ showCreateButtons = false, onTaskCreated }) => {
           </div>
         ))}
       </div>
-
-      <TaskForm
-        isOpen={showTaskForm}
-        onClose={() => {
-          setShowTaskForm(false);
-          setPrefillStatus(null);
-        }}
-        onTaskCreated={handleTaskCreated}
-        prefillStatus={prefillStatus}
+      
+      <TaskForm 
+        isOpen={showTaskForm} 
+        onClose={() => { 
+          setShowTaskForm(false); 
+          setPrefillStatus(null); 
+        }} 
+        onTaskCreated={handleTaskCreated} 
+        prefillStatus={prefillStatus} 
       />
-
+      
       {selectedTask && (
-        <TaskDetail
-          task={selectedTask}
-          isOpen={showTaskDetail}
-          onClose={() => {
-            setShowTaskDetail(false);
-            setSelectedTask(null);
-          }}
-          onTaskUpdated={handleTaskUpdated}
-          onTaskDeleted={handleTaskDeleted}
+        <TaskDetail 
+          task={selectedTask} 
+          isOpen={showTaskDetail} 
+          onClose={() => { 
+            setShowTaskDetail(false); 
+            setSelectedTask(null); 
+          }} 
+          onTaskUpdated={handleTaskUpdated} 
+          onTaskDeleted={handleTaskDeleted} 
         />
       )}
     </>
