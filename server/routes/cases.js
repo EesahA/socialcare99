@@ -206,36 +206,42 @@ router.get('/:id/attachments/:filename', auth, async (req, res) => {
   }
 });
 
-// Delete attachment
+// Delete attachment from case
 router.delete('/:id/attachments/:filename', auth, async (req, res) => {
   try {
-    const caseData = await Case.findById(req.params.id);
+    const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
+    
+    const caseData = await Case.findOne({
+      _id: req.params.id,
+      $or: [
+        { createdBy: req.user._id },
+        { assignedSocialWorkers: currentUserFullName }
+      ]
+    });
+    
     if (!caseData) {
-      return res.status(404).json({ message: 'Case not found' });
+      return res.status(404).json({ message: 'Case not found or you do not have permission to edit it' });
     }
 
-    const attachmentIndex = caseData.attachments.findIndex(att => att.filename === req.params.filename);
+    // Find the attachment to remove
+    const attachmentIndex = caseData.attachments.findIndex(
+      attachment => attachment.filename === req.params.filename
+    );
+
     if (attachmentIndex === -1) {
       return res.status(404).json({ message: 'Attachment not found' });
     }
 
-    const attachment = caseData.attachments[attachmentIndex];
-    
-    // Check if user can delete (creator or uploader)
-    if (caseData.createdBy.toString() !== req.user._id.toString() && 
-        attachment.uploadedBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'You do not have permission to delete this attachment' });
-    }
+    // Remove the attachment from the array
+    caseData.attachments.splice(attachmentIndex, 1);
+    await caseData.save();
 
-    // Remove file from disk
-    const filePath = path.join(__dirname, '../uploads', req.params.filename);
+    // Optionally delete the file from the filesystem
+    const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
+    
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-
-    // Remove from database
-    caseData.attachments.splice(attachmentIndex, 1);
-    await caseData.save();
 
     res.json({ message: 'Attachment deleted successfully' });
   } catch (error) {
