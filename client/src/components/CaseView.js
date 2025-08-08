@@ -12,6 +12,8 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     setCurrentCaseData(caseData);
@@ -21,6 +23,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     if (isOpen && caseData?._id) {
       fetchComments();
       fetchCurrentUser();
+      fetchUsers();
     }
   }, [isOpen, caseData?._id]);
 
@@ -29,12 +32,25 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     setCurrentUser(user);
   };
 
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await axios.get('http://localhost:3000/api/users', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const fetchComments = async () => {
     try {
       const response = await axios.get(`http://localhost:3000/api/cases/${caseData._id}/comments`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      // Sort comments by creation date (newest first)
       const sortedComments = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setComments(sortedComments);
     } catch (error) {
@@ -55,7 +71,6 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
         }
       );
 
-      // Refresh comments from server to get the correct order
       await fetchComments();
       setNewComment('');
     } catch (error) {
@@ -87,7 +102,6 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
       );
 
       if (response.data.attachment) {
-        // Refresh comments from server to get the correct order
         await fetchComments();
         await refreshCaseData();
       }
@@ -149,10 +163,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      // Close the modal first
       onClose();
-      
-      // Then notify parent component about the deletion
       if (onCaseDeleted) {
         onCaseDeleted(caseData._id);
       }
@@ -177,6 +188,11 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   };
 
   const canDelete = () => {
+    if (!currentUser || !currentCaseData) return false;
+    return currentCaseData.createdBy === currentUser.id;
+  };
+
+  const canDeleteAttachments = () => {
     if (!currentUser || !currentCaseData) return false;
     return currentCaseData.createdBy === currentUser.id;
   };
@@ -211,7 +227,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     );
   };
 
-  const renderEditableField = (label, fieldName, value, type = 'text') => {
+  const renderEditableField = (label, fieldName, value, type = 'text', options = null) => {
     if (isEditing) {
       return (
         <div className="case-field">
@@ -223,6 +239,43 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
               className="case-field-input"
               rows="3"
             />
+          ) : type === 'select' && options ? (
+            <select
+              value={value || ''}
+              onChange={(e) => setCurrentCaseData(prev => ({ ...prev, [fieldName]: e.target.value }))}
+              className="case-field-input"
+            >
+              <option value="">Select {label}</option>
+              {options.map((option, index) => (
+                <option key={index} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : type === 'multiselect' && options ? (
+            <div className="multiselect-container">
+              {options.map((option, index) => (
+                <label key={index} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={Array.isArray(value) ? value.includes(option.value) : false}
+                    onChange={(e) => {
+                      const currentValues = Array.isArray(value) ? [...value] : [];
+                      if (e.target.checked) {
+                        currentValues.push(option.value);
+                      } else {
+                        const index = currentValues.indexOf(option.value);
+                        if (index > -1) {
+                          currentValues.splice(index, 1);
+                        }
+                      }
+                      setCurrentCaseData(prev => ({ ...prev, [fieldName]: currentValues }));
+                    }}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           ) : (
             <input
               type={type}
@@ -261,6 +314,27 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     );
   };
 
+  const handleDeleteAttachment = async (filename) => {
+    if (!window.confirm('Are you sure you want to delete this attachment?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `http://localhost:3000/api/cases/${caseData._id}/attachments/${filename}`,
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }
+      );
+
+      // Refresh case data to show updated attachments
+      await refreshCaseData();
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      alert('Failed to delete attachment. Please try again.');
+    }
+  };
+
   const renderAttachments = () => {
     if (!currentCaseData?.attachments || currentCaseData.attachments.length === 0) {
       return null;
@@ -283,6 +357,15 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
               <span className="attachment-size">
                 ({(attachment.size / 1024).toFixed(1)} KB)
               </span>
+              {canDeleteAttachments() && (
+                <button 
+                  className="delete-attachment-btn"
+                  onClick={() => handleDeleteAttachment(attachment.filename)}
+                  title="Delete attachment"
+                >
+                  ×
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -291,6 +374,50 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   };
 
   if (!isOpen || !currentCaseData) return null;
+
+  const caseTypeOptions = [
+    { value: 'Child Protection', label: 'Child Protection' },
+    { value: 'Mental Health', label: 'Mental Health' },
+    { value: 'Elder Care', label: 'Elder Care' },
+    { value: 'Disability Support', label: 'Disability Support' },
+    { value: 'Domestic Abuse', label: 'Domestic Abuse' },
+    { value: 'Housing & Homelessness', label: 'Housing & Homelessness' },
+    { value: 'Other', label: 'Other' }
+  ];
+
+  const caseStatusOptions = [
+    { value: 'Open', label: 'Open' },
+    { value: 'Ongoing', label: 'Ongoing' },
+    { value: 'Closed', label: 'Closed' },
+    { value: 'On Hold', label: 'On Hold' }
+  ];
+
+  const priorityOptions = [
+    { value: 'Low', label: 'Low' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'High', label: 'High' },
+    { value: 'Urgent', label: 'Urgent' }
+  ];
+
+  const livingSituationOptions = [
+    { value: 'Alone', label: 'Alone' },
+    { value: 'With Family', label: 'With Family' },
+    { value: 'Foster Care', label: 'Foster Care' },
+    { value: 'Residential Home', label: 'Residential Home' },
+    { value: 'Homeless', label: 'Homeless' }
+  ];
+
+  const interactionTypeOptions = [
+    { value: 'Home Visit', label: 'Home Visit' },
+    { value: 'Office Meeting', label: 'Office Meeting' },
+    { value: 'Phone Call', label: 'Phone Call' },
+    { value: 'Virtual Meeting', label: 'Virtual Meeting' }
+  ];
+
+  const userOptions = users.map(user => ({
+    value: `${user.firstName} ${user.lastName}`,
+    label: `${user.firstName} ${user.lastName}`
+  }));
 
   return (
     <div className="case-view-overlay">
@@ -309,11 +436,11 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
               {renderEditableField('Client Full Name', 'clientFullName', currentCaseData.clientFullName)}
               {renderEditableField('Date of Birth', 'dateOfBirth', currentCaseData.dateOfBirth, 'date')}
               {renderEditableField('Client Reference Number', 'clientReferenceNumber', currentCaseData.clientReferenceNumber)}
-              {renderEditableField('Case Type', 'caseType', currentCaseData.caseType)}
+              {renderEditableField('Case Type', 'caseType', currentCaseData.caseType, 'select', caseTypeOptions)}
               {renderEditableField('Other Case Type', 'otherCaseType', currentCaseData.otherCaseType)}
-              {renderStatusBadge(currentCaseData.caseStatus)}
-              {renderPriorityBadge(currentCaseData.priorityLevel)}
-              {renderEditableField('Assigned Social Workers', 'assignedSocialWorkers', currentCaseData.assignedSocialWorkers)}
+              {renderEditableField('Case Status', 'caseStatus', currentCaseData.caseStatus, 'select', caseStatusOptions)}
+              {renderEditableField('Priority Level', 'priorityLevel', currentCaseData.priorityLevel, 'select', priorityOptions)}
+              {renderEditableField('Assigned Social Workers', 'assignedSocialWorkers', currentCaseData.assignedSocialWorkers, 'multiselect', userOptions)}
             </div>
 
             <div className="case-section">
@@ -321,7 +448,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
               {renderEditableField('Client Address', 'clientAddress', currentCaseData.clientAddress)}
               {renderEditableField('Phone Number', 'phoneNumber', currentCaseData.phoneNumber)}
               {renderEditableField('Email Address', 'emailAddress', currentCaseData.emailAddress)}
-              {renderEditableField('Living Situation', 'livingSituation', currentCaseData.livingSituation)}
+              {renderEditableField('Living Situation', 'livingSituation', currentCaseData.livingSituation, 'select', livingSituationOptions)}
               {renderEditableField('Safeguarding Concerns', 'safeguardingConcerns', currentCaseData.safeguardingConcerns)}
               {renderEditableField('Safeguarding Details', 'safeguardingDetails', currentCaseData.safeguardingDetails, 'textarea')}
             </div>
@@ -330,7 +457,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
               <h3>Meeting Notes / Visit Log</h3>
               {renderEditableField('Meeting Date', 'meetingDate', currentCaseData.meetingDate, 'date')}
               {renderEditableField('Attendees', 'attendees', currentCaseData.attendees)}
-              {renderEditableField('Type of Interaction', 'typeOfInteraction', currentCaseData.typeOfInteraction)}
+              {renderEditableField('Type of Interaction', 'typeOfInteraction', currentCaseData.typeOfInteraction, 'select', interactionTypeOptions)}
               {renderEditableField('Meeting Summary', 'meetingSummary', currentCaseData.meetingSummary, 'textarea')}
               {renderEditableField('Concerns Raised', 'concernsRaised', currentCaseData.concernsRaised, 'textarea')}
               {renderEditableField('Immediate Actions Taken', 'immediateActionsTaken', currentCaseData.immediateActionsTaken, 'textarea')}

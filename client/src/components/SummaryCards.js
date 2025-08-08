@@ -4,6 +4,7 @@ import './SummaryCards.css';
 
 const SummaryCards = ({ refreshTrigger }) => {
   const [summaryData, setSummaryData] = useState({
+    totalCases: 0,
     pendingTasks: 0,
     blockedTasks: 0,
     overdueTasks: 0
@@ -12,30 +13,36 @@ const SummaryCards = ({ refreshTrigger }) => {
 
   const fetchSummaryData = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/tasks', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      setLoading(true);
+      
+      // Fetch cases for the authenticated user
+      const casesResponse = await axios.get('http://localhost:3000/api/cases', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      // Fetch tasks for the authenticated user
+      const tasksResponse = await axios.get('http://localhost:3000/api/tasks', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
 
-      const tasks = response.data;
-      const now = new Date();
+      const tasks = tasksResponse.data;
+      const today = new Date();
 
-      // Calculate summary data
-      const pendingTasks = tasks.filter(task => task.status !== 'Complete').length;
+      const pendingTasks = tasks.filter(task => task.status === 'Backlog' || task.status === 'In Progress').length;
       const blockedTasks = tasks.filter(task => task.status === 'Blocked').length;
       const overdueTasks = tasks.filter(task => {
         const dueDate = new Date(task.dueDate);
-        return dueDate < now && task.status !== 'Complete';
+        return dueDate < today && task.status !== 'Complete';
       }).length;
 
       setSummaryData({
+        totalCases: casesResponse.data.length,
         pendingTasks,
         blockedTasks,
         overdueTasks
       });
     } catch (error) {
-      console.error('Failed to fetch summary data:', error);
+      console.error('Error fetching summary data:', error);
     } finally {
       setLoading(false);
     }
@@ -48,27 +55,31 @@ const SummaryCards = ({ refreshTrigger }) => {
   const cards = [
     { 
       title: 'Total Cases', 
-      value: 1,
+      value: summaryData.totalCases, 
       color: '#3498db', 
-      icon: '📁' 
+      colorLight: '#5dade2',
+      icon: '📁'
     },
     { 
       title: 'Pending Tasks', 
       value: summaryData.pendingTasks, 
-      color: '#f1c40f', 
-      icon: '⏳' 
+      color: '#f39c12', 
+      colorLight: '#f7dc6f',
+      icon: '⏳'
     },
     { 
       title: 'Blocked Tasks', 
       value: summaryData.blockedTasks, 
       color: '#e74c3c', 
-      icon: '🚫' 
+      colorLight: '#ec7063',
+      icon: '🚫'
     },
     { 
       title: 'Overdue Tasks', 
       value: summaryData.overdueTasks, 
       color: '#e67e22', 
-      icon: '⚠️' 
+      colorLight: '#eb984e',
+      icon: '⚠️'
     }
   ];
 
@@ -76,15 +87,13 @@ const SummaryCards = ({ refreshTrigger }) => {
     return (
       <div className="summary-section">
         <div className="summary-grid">
-          {cards.map((card, index) => (
+          {[1, 2, 3, 4].map((index) => (
             <div key={index} className="summary-card loading">
-              <div className="summary-card-content">
-                <div className="summary-card-icon" style={{ color: card.color }}>
-                  {card.icon}
-                </div>
-                <div className="summary-card-info">
-                  <h3>{card.title}</h3>
-                  <div className="loading-skeleton"></div>
+              <div className="card-content">
+                <div className="card-icon skeleton"></div>
+                <div className="card-info">
+                  <div className="card-title skeleton"></div>
+                  <div className="card-value skeleton"></div>
                 </div>
               </div>
             </div>
@@ -98,14 +107,23 @@ const SummaryCards = ({ refreshTrigger }) => {
     <div className="summary-section">
       <div className="summary-grid">
         {cards.map((card, index) => (
-          <div key={index} className="summary-card" style={{ borderLeftColor: card.color }}>
-            <div className="summary-card-content">
-              <div className="summary-card-icon" style={{ color: card.color }}>
+          <div 
+            key={index} 
+            className={`summary-card ${card.title === 'Overdue Tasks' ? 'overdue' : ''}`}
+            style={{
+              '--card-color': card.color,
+              '--card-color-light': card.colorLight
+            }}
+          >
+            <div className="card-content">
+              <div className="card-icon">
                 {card.icon}
               </div>
-              <div className="summary-card-info">
-                <h3>{card.title}</h3>
-                <p className="summary-card-value">{card.value}</p>
+              <div className="card-info">
+                <h3 className="card-title">{card.title}</h3>
+                <p className="card-value">
+                  {card.value.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
