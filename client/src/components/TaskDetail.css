@@ -240,3 +240,34 @@
     width: 100%;
   }
 } 
+
+.readonly-field {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  color: #2c3e50;
+  font-size: 0.9rem;
+  min-height: 20px;
+}
+
+.priority-badge,
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.priority-low { background-color: #27ae60; }
+.priority-medium { background-color: #f39c12; }
+.priority-high { background-color: #e67e22; }
+.priority-urgent { background-color: #e74c3c; }
+
+.status-backlog { background-color: #95a5a6; }
+.status-in-progress { background-color: #3498db; }
+.status-blocked { background-color: #e74c3c; }
+.status-complete { background-color: #27ae60; } 

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import CaseForm from '../components/CaseForm';
+import CaseView from '../components/CaseView';
 import './Cases.css';
 
 const Cases = () => {
   const [showCaseForm, setShowCaseForm] = useState(false);
+  const [showCaseView, setShowCaseView] = useState(false);
+  const [selectedCase, setSelectedCase] = useState(null);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +57,11 @@ const Cases = () => {
         }
       }
     }
+  };
+
+  const handleExpandCase = (caseData) => {
+    setSelectedCase(caseData);
+    setShowCaseView(true);
   };
 
   const getPriorityColor = (priority) => {
@@ -149,6 +157,13 @@ const Cases = () => {
                       >
                         {accessType.label}
                       </span>
+                      <button 
+                        className="expand-case-button"
+                        onClick={() => handleExpandCase(caseData)}
+                        title="View case details"
+                      >
+                        ⤢
+                      </button>
                       {isCaseCreator(caseData) && (
                         <button 
                           className="delete-case-button"
@@ -229,6 +244,15 @@ const Cases = () => {
         isOpen={showCaseForm}
         onClose={() => setShowCaseForm(false)}
         onCaseCreated={handleCaseCreated}
+      />
+
+      <CaseView
+        caseData={selectedCase}
+        isOpen={showCaseView}
+        onClose={() => {
+          setShowCaseView(false);
+          setSelectedCase(null);
+        }}
       />
     </div>
   );
