@@ -64,6 +64,12 @@ const Cases = () => {
     setShowCaseView(true);
   };
 
+  const handleCaseUpdated = (updatedCase) => {
+    setCases(prevCases => 
+      prevCases.map(c => c._id === updatedCase._id ? updatedCase : c)
+    );
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'Low': return '#27ae60';
@@ -253,6 +259,7 @@ const Cases = () => {
           setShowCaseView(false);
           setSelectedCase(null);
         }}
+        onCaseUpdated={handleCaseUpdated}
       />
     </div>
   );

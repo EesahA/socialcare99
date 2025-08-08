@@ -80,19 +80,38 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const updatedCase = await Case.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.user._id },
+    const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
+    
+    const caseData = await Case.findOne({
+      _id: req.params.id,
+      $or: [
+        { createdBy: req.user._id },
+        { assignedSocialWorkers: currentUserFullName }
+      ]
+    });
+    
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found or you do not have permission to edit it' });
+    }
+    
+    const updatedCase = await Case.findByIdAndUpdate(
+      req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
     
-    if (!updatedCase) {
-      return res.status(404).json({ message: 'Case not found or you do not have permission to update it' });
-    }
-    
     res.json(updatedCase);
   } catch (error) {
     console.error('Error updating case:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationErrors 
+      });
+    }
+    
     res.status(500).json({ message: 'Failed to update case' });
   }
 });
