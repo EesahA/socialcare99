@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/cases/:caseId/comments', auth, async (req, res) => {
   try {
     const comments = await CaseComment.find({ caseId: req.params.caseId })
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: -1 }); // Changed to -1 for newest first
     res.json(comments);
   } catch (error) {
     console.error('Error fetching case comments:', error);
@@ -20,7 +20,7 @@ router.post('/cases/:caseId/comments', auth, async (req, res) => {
     if (!text || !text.trim()) {
       return res.status(400).json({ message: 'Comment text is required' });
     }
-
+    
     const comment = new CaseComment({
       caseId: req.params.caseId,
       userId: req.user._id,
@@ -28,7 +28,7 @@ router.post('/cases/:caseId/comments', auth, async (req, res) => {
       userLastName: req.user.lastName,
       text: text.trim()
     });
-
+    
     const savedComment = await comment.save();
     res.status(201).json(savedComment);
   } catch (error) {
@@ -39,16 +39,15 @@ router.post('/cases/:caseId/comments', auth, async (req, res) => {
 
 router.delete('/case-comments/:commentId', auth, async (req, res) => {
   try {
-    const comment = await CaseComment.findOne({ 
-      _id: req.params.commentId, 
-      userId: req.user._id 
+    const comment = await CaseComment.findOneAndDelete({
+      _id: req.params.commentId,
+      userId: req.user._id
     });
-
+    
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found or you do not have permission to delete it' });
     }
-
-    await CaseComment.findByIdAndDelete(req.params.commentId);
+    
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     console.error('Error deleting case comment:', error);

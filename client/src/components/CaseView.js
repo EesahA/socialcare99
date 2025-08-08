@@ -3,150 +3,43 @@ import axios from 'axios';
 import Comment from './Comment';
 import './CaseView.css';
 
-const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
+const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentCaseData, setCurrentCaseData] = useState(caseData);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({});
-  const [currentCaseData, setCurrentCaseData] = useState(null);
 
   useEffect(() => {
-    if (isOpen && caseData) {
-      setCurrentCaseData(caseData);
-      const user = JSON.parse(localStorage.getItem('user'));
-      setCurrentUser(user);
-      setFormData({
-        clientFullName: caseData.clientFullName || '',
-        dateOfBirth: caseData.dateOfBirth ? caseData.dateOfBirth.split('T')[0] : '',
-        clientReferenceNumber: caseData.clientReferenceNumber || '',
-        caseType: caseData.caseType || '',
-        otherCaseType: caseData.otherCaseType || '',
-        caseStatus: caseData.caseStatus || 'Open',
-        priorityLevel: caseData.priorityLevel || 'Medium',
-        assignedSocialWorkers: caseData.assignedSocialWorkers || [],
-        clientAddress: caseData.clientAddress || '',
-        phoneNumber: caseData.phoneNumber || '',
-        emailAddress: caseData.emailAddress || '',
-        livingSituation: caseData.livingSituation || '',
-        safeguardingConcerns: caseData.safeguardingConcerns || 'No',
-        safeguardingDetails: caseData.safeguardingDetails || '',
-        meetingDate: caseData.meetingDate ? caseData.meetingDate.split('T')[0] : '',
-        attendees: caseData.attendees || '',
-        typeOfInteraction: caseData.typeOfInteraction || '',
-        meetingSummary: caseData.meetingSummary || '',
-        concernsRaised: caseData.concernsRaised || '',
-        immediateActionsTaken: caseData.immediateActionsTaken || '',
-        clientWishesFeelings: caseData.clientWishesFeelings || '',
-        newTasks: caseData.newTasks || [],
-        nextPlannedReviewDate: caseData.nextPlannedReviewDate ? caseData.nextPlannedReviewDate.split('T')[0] : ''
-      });
+    setCurrentCaseData(caseData);
+  }, [caseData]);
+
+  useEffect(() => {
+    if (isOpen && caseData?._id) {
       fetchComments();
+      fetchCurrentUser();
     }
-  }, [isOpen, caseData]);
+  }, [isOpen, caseData?._id]);
+
+  const fetchCurrentUser = () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(user);
+  };
 
   const fetchComments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/cases/${currentCaseData._id}/comments`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await axios.get(`http://localhost:3000/api/cases/${caseData._id}/comments`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      setComments(response.data);
+      // Sort comments by creation date (newest first)
+      const sortedComments = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setComments(sortedComments);
     } catch (error) {
-      console.error('Failed to fetch case comments:', error);
+      console.error('Error fetching comments:', error);
     }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox') {
-      if (name === 'assignedSocialWorkers') {
-        const updatedWorkers = checked 
-          ? [...formData.assignedSocialWorkers, value]
-          : formData.assignedSocialWorkers.filter(worker => worker !== value);
-        setFormData(prev => ({ ...prev, assignedSocialWorkers: updatedWorkers }));
-      } else {
-        setFormData(prev => ({ ...prev, [name]: checked ? value : '' }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const updateData = {
-        ...formData,
-        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
-        meetingDate: formData.meetingDate ? new Date(formData.meetingDate) : undefined,
-        nextPlannedReviewDate: formData.nextPlannedReviewDate ? new Date(formData.nextPlannedReviewDate) : undefined
-      };
-
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined || updateData[key] === '') {
-          delete updateData[key];
-        }
-      });
-
-      const token = localStorage.getItem('token');
-      const response = await axios.put(`http://localhost:3000/api/cases/${currentCaseData._id}`, updateData, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      // Update the local case data immediately
-      setCurrentCaseData(response.data);
-      
-      // Call the parent callback to update the cases list
-      onCaseUpdated(response.data);
-      
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update case:', error);
-      if (error.response?.data?.errors) {
-        setError(`Validation errors: ${error.response.data.errors.join(', ')}`);
-      } else {
-        setError(error.response?.data?.message || 'Failed to update case');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setFormData({
-      clientFullName: currentCaseData.clientFullName || '',
-      dateOfBirth: currentCaseData.dateOfBirth ? currentCaseData.dateOfBirth.split('T')[0] : '',
-      clientReferenceNumber: currentCaseData.clientReferenceNumber || '',
-      caseType: currentCaseData.caseType || '',
-      otherCaseType: currentCaseData.otherCaseType || '',
-      caseStatus: currentCaseData.caseStatus || 'Open',
-      priorityLevel: currentCaseData.priorityLevel || 'Medium',
-      assignedSocialWorkers: currentCaseData.assignedSocialWorkers || [],
-      clientAddress: currentCaseData.clientAddress || '',
-      phoneNumber: currentCaseData.phoneNumber || '',
-      emailAddress: currentCaseData.emailAddress || '',
-      livingSituation: currentCaseData.livingSituation || '',
-      safeguardingConcerns: currentCaseData.safeguardingConcerns || 'No',
-      safeguardingDetails: currentCaseData.safeguardingDetails || '',
-      meetingDate: currentCaseData.meetingDate ? currentCaseData.meetingDate.split('T')[0] : '',
-      attendees: currentCaseData.attendees || '',
-      typeOfInteraction: currentCaseData.typeOfInteraction || '',
-      meetingSummary: currentCaseData.meetingSummary || '',
-      concernsRaised: currentCaseData.concernsRaised || '',
-      immediateActionsTaken: currentCaseData.immediateActionsTaken || '',
-      clientWishesFeelings: currentCaseData.clientWishesFeelings || '',
-      newTasks: currentCaseData.newTasks || [],
-      nextPlannedReviewDate: currentCaseData.nextPlannedReviewDate ? currentCaseData.nextPlannedReviewDate.split('T')[0] : ''
-    });
-    setIsEditing(false);
-    setError('');
   };
 
   const handleAddComment = async () => {
@@ -154,46 +47,139 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
 
     try {
       setCommentLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:3000/api/cases/${currentCaseData._id}/comments`, {
-        text: newComment.trim()
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await axios.post(
+        `http://localhost:3000/api/cases/${caseData._id}/comments`,
+        { text: newComment.trim() },
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }
+      );
 
-      setComments(prev => [...prev, response.data]);
+      // Refresh comments from server to get the correct order
+      await fetchComments();
       setNewComment('');
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      console.error('Error adding comment:', error);
+      alert('Failed to add comment. Please try again.');
     } finally {
       setCommentLoading(false);
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/case-comments/${commentId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setComments(prev => prev.filter(comment => comment._id !== commentId));
+      setCommentLoading(true);
+      const response = await axios.post(
+        `http://localhost:3000/api/cases/${caseData._id}/upload`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.attachment) {
+        // Refresh comments from server to get the correct order
+        await fetchComments();
+        await refreshCaseData();
+      }
     } catch (error) {
-      console.error('Failed to delete comment:', error);
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setCommentLoading(false);
     }
   };
 
-  const canEditCase = () => {
+  const refreshCaseData = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/cases/${caseData._id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setCurrentCaseData(response.data);
+      if (onCaseUpdated) {
+        onCaseUpdated(response.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing case data:', error);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await axios.put(`http://localhost:3000/api/cases/${caseData._id}`, currentCaseData, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      setIsEditing(false);
+      setCurrentCaseData(response.data);
+      if (onCaseUpdated) {
+        onCaseUpdated(response.data);
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to update case');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this case? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.delete(`http://localhost:3000/api/cases/${caseData._id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      // Close the modal first
+      onClose();
+      
+      // Then notify parent component about the deletion
+      if (onCaseDeleted) {
+        onCaseDeleted(caseData._id);
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to delete case');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setCurrentCaseData(caseData);
+    setError('');
+  };
+
+  const canEdit = () => {
     if (!currentUser || !currentCaseData) return false;
     const currentUserFullName = `${currentUser.firstName} ${currentUser.lastName}`;
-    return currentCaseData.createdBy === currentUser.id || currentCaseData.assignedSocialWorkers.includes(currentUserFullName);
+    return currentCaseData.createdBy === currentUser.id || 
+           currentCaseData.assignedSocialWorkers?.includes(currentUserFullName);
   };
 
-  const canDeleteComment = (comment) => {
-    if (!currentUser) return false;
-    return comment.userId === currentUser.id;
+  const canDelete = () => {
+    if (!currentUser || !currentCaseData) return false;
+    return currentCaseData.createdBy === currentUser.id;
   };
-
-  if (!isOpen || !currentCaseData) return null;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -208,454 +194,172 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
   const renderField = (label, value, type = 'text') => {
     if (!value || value === '') return null;
     
+    let displayValue = value;
+    if (type === 'date') {
+      displayValue = formatDate(value);
+    } else if (type === 'datetime') {
+      displayValue = formatDateTime(value);
+    } else if (Array.isArray(value)) {
+      displayValue = value.join(', ');
+    }
+
     return (
-      <div className="view-field">
-        <label className="view-label">{label}:</label>
-        <div className="view-value">
-          {type === 'date' ? formatDate(value) : 
-           type === 'datetime' ? formatDateTime(value) : 
-           type === 'textarea' ? (
-             <div className="textarea-value">{value}</div>
-           ) : value}
+      <div className="case-field">
+        <span className="case-field-label">{label}</span>
+        <div className="case-field-value">{displayValue}</div>
+      </div>
+    );
+  };
+
+  const renderEditableField = (label, fieldName, value, type = 'text') => {
+    if (isEditing) {
+      return (
+        <div className="case-field">
+          <span className="case-field-label">{label}</span>
+          {type === 'textarea' ? (
+            <textarea
+              value={value || ''}
+              onChange={(e) => setCurrentCaseData(prev => ({ ...prev, [fieldName]: e.target.value }))}
+              className="case-field-input"
+              rows="3"
+            />
+          ) : (
+            <input
+              type={type}
+              value={value || ''}
+              onChange={(e) => setCurrentCaseData(prev => ({ ...prev, [fieldName]: e.target.value }))}
+              className="case-field-input"
+            />
+          )}
+        </div>
+      );
+    }
+    return renderField(label, value, type);
+  };
+
+  const renderStatusBadge = (status) => {
+    if (!status) return null;
+    return (
+      <div className="case-field">
+        <span className="case-field-label">Status</span>
+        <span className={`status-badge ${status.toLowerCase().replace(' ', '-')}`}>
+          {status}
+        </span>
+      </div>
+    );
+  };
+
+  const renderPriorityBadge = (priority) => {
+    if (!priority) return null;
+    return (
+      <div className="case-field">
+        <span className="case-field-label">Priority</span>
+        <span className={`priority-badge ${priority.toLowerCase()}`}>
+          {priority}
+        </span>
+      </div>
+    );
+  };
+
+  const renderAttachments = () => {
+    if (!currentCaseData?.attachments || currentCaseData.attachments.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="case-section">
+        <h3>Attachments</h3>
+        <div className="attachments-list">
+          {currentCaseData.attachments.map((attachment, index) => (
+            <div key={index} className="attachment-item">
+              <a 
+                href={`http://localhost:3000/uploads/${attachment.filename}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="attachment-link"
+              >
+                📎 {attachment.originalName}
+              </a>
+              <span className="attachment-size">
+                ({(attachment.size / 1024).toFixed(1)} KB)
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );
   };
 
-  const renderList = (label, items) => {
-    if (!items || items.length === 0) return null;
-    
-    return (
-      <div className="view-field">
-        <label className="view-label">{label}:</label>
-        <div className="view-value">
-          <div className="list-items">
-            {items.map((item, index) => (
-              <span key={index} className="list-item">{item}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'Low': return '#27ae60';
-      case 'Medium': return '#f39c12';
-      case 'High': return '#e67e22';
-      case 'Urgent': return '#e74c3c';
-      default: return '#95a5a6';
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Open': return '#3498db';
-      case 'Ongoing': return '#f39c12';
-      case 'Closed': return '#27ae60';
-      case 'On Hold': return '#95a5a6';
-      default: return '#95a5a6';
-    }
-  };
+  if (!isOpen || !currentCaseData) return null;
 
   return (
     <div className="case-view-overlay">
       <div className="case-view-modal">
         <div className="case-view-header">
-          <h2>{isEditing ? 'Edit Case' : 'Case Details'} - {currentCaseData.caseId}</h2>
+          <h2>Case Details - {currentCaseData.caseId}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-
+        
         <div className="case-view-content">
           {error && <div className="error-message">{error}</div>}
-
-          {isEditing ? (
-            <div className="edit-form">
-              <div className="view-section">
-                <h3>Case Overview</h3>
-                <div className="view-grid">
-                  <div className="view-field">
-                    <label className="view-label">Client Full Name: *</label>
-                    <input
-                      type="text"
-                      name="clientFullName"
-                      value={formData.clientFullName}
-                      onChange={handleInputChange}
-                      placeholder="Enter client's full name"
-                      required
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Date of Birth: *</label>
-                    <input
-                      type="date"
-                      name="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Client Reference Number: *</label>
-                    <input
-                      type="text"
-                      name="clientReferenceNumber"
-                      value={formData.clientReferenceNumber}
-                      onChange={handleInputChange}
-                      placeholder="Enter reference number"
-                      required
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Case Type: *</label>
-                    <select
-                      name="caseType"
-                      value={formData.caseType}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Select case type</option>
-                      <option value="Child Protection">Child Protection</option>
-                      <option value="Mental Health">Mental Health</option>
-                      <option value="Elder Care">Elder Care</option>
-                      <option value="Disability Support">Disability Support</option>
-                      <option value="Domestic Abuse">Domestic Abuse</option>
-                      <option value="Housing & Homelessness">Housing & Homelessness</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {formData.caseType === 'Other' && (
-                      <input
-                        type="text"
-                        name="otherCaseType"
-                        value={formData.otherCaseType}
-                        onChange={handleInputChange}
-                        placeholder="Specify other case type"
-                        className="other-case-type-input"
-                      />
-                    )}
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Case Status:</label>
-                    <select
-                      name="caseStatus"
-                      value={formData.caseStatus}
-                      onChange={handleInputChange}
-                    >
-                      <option value="Open">Open</option>
-                      <option value="Ongoing">Ongoing</option>
-                      <option value="Closed">Closed</option>
-                      <option value="On Hold">On Hold</option>
-                    </select>
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Priority Level:</label>
-                    <select
-                      name="priorityLevel"
-                      value={formData.priorityLevel}
-                      onChange={handleInputChange}
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Urgent">Urgent</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="view-section">
-                <h3>Contact & Safeguarding Details</h3>
-                <div className="view-grid">
-                  <div className="view-field">
-                    <label className="view-label">Client Address:</label>
-                    <textarea
-                      name="clientAddress"
-                      value={formData.clientAddress}
-                      onChange={handleInputChange}
-                      placeholder="Enter full address"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Phone Number:</label>
-                    <input
-                      type="tel"
-                      name="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={handleInputChange}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Email Address:</label>
-                    <input
-                      type="email"
-                      name="emailAddress"
-                      value={formData.emailAddress}
-                      onChange={handleInputChange}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Living Situation:</label>
-                    <select
-                      name="livingSituation"
-                      value={formData.livingSituation}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select living situation</option>
-                      <option value="Alone">Alone</option>
-                      <option value="With Family">With Family</option>
-                      <option value="Foster Care">Foster Care</option>
-                      <option value="Residential Home">Residential Home</option>
-                      <option value="Homeless">Homeless</option>
-                    </select>
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Safeguarding Concerns:</label>
-                    <select
-                      name="safeguardingConcerns"
-                      value={formData.safeguardingConcerns}
-                      onChange={handleInputChange}
-                    >
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
-                    </select>
-                  </div>
-
-                  {formData.safeguardingConcerns === 'Yes' && (
-                    <div className="view-field">
-                      <label className="view-label">Safeguarding Details:</label>
-                      <textarea
-                        name="safeguardingDetails"
-                        value={formData.safeguardingDetails}
-                        onChange={handleInputChange}
-                        placeholder="Please provide details of safeguarding concerns"
-                        rows="4"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="view-section">
-                <h3>Meeting Notes / Visit Log</h3>
-                <div className="view-grid">
-                  <div className="view-field">
-                    <label className="view-label">Meeting Date:</label>
-                    <input
-                      type="date"
-                      name="meetingDate"
-                      value={formData.meetingDate}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Type of Interaction:</label>
-                    <select
-                      name="typeOfInteraction"
-                      value={formData.typeOfInteraction}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select interaction type</option>
-                      <option value="Home Visit">Home Visit</option>
-                      <option value="Office Meeting">Office Meeting</option>
-                      <option value="Phone Call">Phone Call</option>
-                      <option value="Virtual Meeting">Virtual Meeting</option>
-                    </select>
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Attendees:</label>
-                    <input
-                      type="text"
-                      name="attendees"
-                      value={formData.attendees}
-                      onChange={handleInputChange}
-                      placeholder="Social worker, family, school staff, police, etc."
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Meeting Summary / Observations:</label>
-                    <textarea
-                      name="meetingSummary"
-                      value={formData.meetingSummary}
-                      onChange={handleInputChange}
-                      placeholder="Enter meeting summary and observations"
-                      rows="6"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Concerns Raised:</label>
-                    <textarea
-                      name="concernsRaised"
-                      value={formData.concernsRaised}
-                      onChange={handleInputChange}
-                      placeholder="Enter any concerns raised during the meeting"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Immediate Actions Taken:</label>
-                    <textarea
-                      name="immediateActionsTaken"
-                      value={formData.immediateActionsTaken}
-                      onChange={handleInputChange}
-                      placeholder="Enter immediate actions taken"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div className="view-field">
-                    <label className="view-label">Client Wishes & Feelings:</label>
-                    <textarea
-                      name="clientWishesFeelings"
-                      value={formData.clientWishesFeelings}
-                      onChange={handleInputChange}
-                      placeholder="Enter client's wishes and feelings"
-                      rows="3"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="view-section">
-                <h3>Follow-Up Actions / Tasks</h3>
-                <div className="view-grid">
-                  <div className="view-field">
-                    <label className="view-label">Next Planned Review Date:</label>
-                    <input
-                      type="date"
-                      name="nextPlannedReviewDate"
-                      value={formData.nextPlannedReviewDate}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-              </div>
+          
+          <div className="case-sections">
+            <div className="case-section">
+              <h3>Case Overview</h3>
+              {renderEditableField('Client Full Name', 'clientFullName', currentCaseData.clientFullName)}
+              {renderEditableField('Date of Birth', 'dateOfBirth', currentCaseData.dateOfBirth, 'date')}
+              {renderEditableField('Client Reference Number', 'clientReferenceNumber', currentCaseData.clientReferenceNumber)}
+              {renderEditableField('Case Type', 'caseType', currentCaseData.caseType)}
+              {renderEditableField('Other Case Type', 'otherCaseType', currentCaseData.otherCaseType)}
+              {renderStatusBadge(currentCaseData.caseStatus)}
+              {renderPriorityBadge(currentCaseData.priorityLevel)}
+              {renderEditableField('Assigned Social Workers', 'assignedSocialWorkers', currentCaseData.assignedSocialWorkers)}
             </div>
-          ) : (
-            <>
-              <div className="view-section">
-                <h3>Case Overview</h3>
-                <div className="view-grid">
-                  {renderField('Client Full Name', currentCaseData.clientFullName)}
-                  {renderField('Date of Birth', currentCaseData.dateOfBirth, 'date')}
-                  {renderField('Client Reference Number', currentCaseData.clientReferenceNumber)}
-                  {renderField('Case Type', currentCaseData.caseType)}
-                  {renderField('Other Case Type', currentCaseData.otherCaseType)}
-                  
-                  <div className="view-field">
-                    <label className="view-label">Case Status:</label>
-                    <div className="view-value">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(currentCaseData.caseStatus) }}
-                      >
-                        {currentCaseData.caseStatus}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="view-field">
-                    <label className="view-label">Priority Level:</label>
-                    <div className="view-value">
-                      <span 
-                        className="priority-badge"
-                        style={{ backgroundColor: getPriorityColor(currentCaseData.priorityLevel) }}
-                      >
-                        {currentCaseData.priorityLevel}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {renderList('Assigned Social Workers', currentCaseData.assignedSocialWorkers)}
-                </div>
-              </div>
 
-              {(currentCaseData.clientAddress || currentCaseData.phoneNumber || currentCaseData.emailAddress || currentCaseData.livingSituation || currentCaseData.safeguardingConcerns === 'Yes') && (
-                <div className="view-section">
-                  <h3>Contact & Safeguarding Details</h3>
-                  <div className="view-grid">
-                    {renderField('Client Address', currentCaseData.clientAddress, 'textarea')}
-                    {renderField('Phone Number', currentCaseData.phoneNumber)}
-                    {renderField('Email Address', currentCaseData.emailAddress)}
-                    {renderField('Living Situation', currentCaseData.livingSituation)}
-                    
-                    {currentCaseData.safeguardingConcerns === 'Yes' && (
-                      <>
-                        <div className="view-field">
-                          <label className="view-label">Safeguarding Concerns:</label>
-                          <div className="view-value">
-                            <span className="safeguarding-yes">Yes</span>
-                          </div>
-                        </div>
-                        {renderField('Safeguarding Details', currentCaseData.safeguardingDetails, 'textarea')}
-                      </>
-                    )}
-                    
-                    {currentCaseData.safeguardingConcerns === 'No' && (
-                      <div className="view-field">
-                        <label className="view-label">Safeguarding Concerns:</label>
-                        <div className="view-value">
-                          <span className="safeguarding-no">No</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+            <div className="case-section">
+              <h3>Contact & Safeguarding Details</h3>
+              {renderEditableField('Client Address', 'clientAddress', currentCaseData.clientAddress)}
+              {renderEditableField('Phone Number', 'phoneNumber', currentCaseData.phoneNumber)}
+              {renderEditableField('Email Address', 'emailAddress', currentCaseData.emailAddress)}
+              {renderEditableField('Living Situation', 'livingSituation', currentCaseData.livingSituation)}
+              {renderEditableField('Safeguarding Concerns', 'safeguardingConcerns', currentCaseData.safeguardingConcerns)}
+              {renderEditableField('Safeguarding Details', 'safeguardingDetails', currentCaseData.safeguardingDetails, 'textarea')}
+            </div>
 
-              {(currentCaseData.meetingDate || currentCaseData.attendees || currentCaseData.typeOfInteraction || currentCaseData.meetingSummary || currentCaseData.concernsRaised || currentCaseData.immediateActionsTaken || currentCaseData.clientWishesFeelings) && (
-                <div className="view-section">
-                  <h3>Meeting Notes / Visit Log</h3>
-                  <div className="view-grid">
-                    {renderField('Meeting Date', currentCaseData.meetingDate, 'date')}
-                    {renderField('Type of Interaction', currentCaseData.typeOfInteraction)}
-                    {renderField('Attendees', currentCaseData.attendees)}
-                    {renderField('Meeting Summary / Observations', currentCaseData.meetingSummary, 'textarea')}
-                    {renderField('Concerns Raised', currentCaseData.concernsRaised, 'textarea')}
-                    {renderField('Immediate Actions Taken', currentCaseData.immediateActionsTaken, 'textarea')}
-                    {renderField('Client Wishes & Feelings', currentCaseData.clientWishesFeelings, 'textarea')}
-                  </div>
-                </div>
-              )}
+            <div className="case-section">
+              <h3>Meeting Notes / Visit Log</h3>
+              {renderEditableField('Meeting Date', 'meetingDate', currentCaseData.meetingDate, 'date')}
+              {renderEditableField('Attendees', 'attendees', currentCaseData.attendees)}
+              {renderEditableField('Type of Interaction', 'typeOfInteraction', currentCaseData.typeOfInteraction)}
+              {renderEditableField('Meeting Summary', 'meetingSummary', currentCaseData.meetingSummary, 'textarea')}
+              {renderEditableField('Concerns Raised', 'concernsRaised', currentCaseData.concernsRaised, 'textarea')}
+              {renderEditableField('Immediate Actions Taken', 'immediateActionsTaken', currentCaseData.immediateActionsTaken, 'textarea')}
+              {renderEditableField('Client Wishes & Feelings', 'clientWishesFeelings', currentCaseData.clientWishesFeelings, 'textarea')}
+            </div>
 
-              {(currentCaseData.newTasks && currentCaseData.newTasks.length > 0 || currentCaseData.nextPlannedReviewDate) && (
-                <div className="view-section">
-                  <h3>Follow-Up Actions / Tasks</h3>
-                  <div className="view-grid">
-                    {renderList('New Tasks from Meeting', currentCaseData.newTasks)}
-                    {renderField('Next Planned Review Date', currentCaseData.nextPlannedReviewDate, 'date')}
-                  </div>
-                </div>
-              )}
+            <div className="case-section">
+              <h3>Follow-Up Actions</h3>
+              {renderEditableField('New Tasks', 'newTasks', currentCaseData.newTasks, 'textarea')}
+              {renderEditableField('Next Planned Review Date', 'nextPlannedReviewDate', currentCaseData.nextPlannedReviewDate, 'date')}
+            </div>
 
-              <div className="view-section">
-                <h3>Case Information</h3>
-                <div className="view-grid">
-                  {renderField('Created', currentCaseData.createdAt, 'datetime')}
-                  {renderField('Last Updated', currentCaseData.updatedAt, 'datetime')}
-                </div>
-              </div>
-            </>
-          )}
+            {renderAttachments()}
+          </div>
 
-          <div className="view-section">
+          <div className="file-upload-section">
+            <h3>Upload Files</h3>
+            <label className="file-upload-label">
+              <input 
+                type="file" 
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+              />
+              📎 Choose File to Upload
+            </label>
+          </div>
+
+          <div className="comments-section">
             <div className="comments-header">
               <h3 className="comments-title">Comments</h3>
               <span className="comment-count">{comments.length}</span>
@@ -664,8 +368,8 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
             <div className="comment-input-section">
               <div className="comment-input-container">
                 <div className="comment-input-avatar">
-                  <div className="avatar-initials" style={{ backgroundColor: getAvatarColor(currentUser?.id || '') }}>
-                    {getInitials(currentUser?.firstName, currentUser?.lastName)}
+                  <div className="avatar-initials">
+                    {currentUser ? `${currentUser.firstName?.[0]}${currentUser.lastName?.[0]}` : 'U'}
                   </div>
                 </div>
                 <div className="comment-input">
@@ -677,9 +381,6 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
                     rows="3" 
                   />
                   <div className="comment-actions">
-                    <button className="comment-cancel-btn" onClick={() => setNewComment('')}>
-                      Cancel
-                    </button>
                     <button 
                       className="comment-submit-btn" 
                       onClick={handleAddComment} 
@@ -697,55 +398,44 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated }) => {
                 <div className="comments-empty">No comments yet. Be the first to comment!</div>
               ) : (
                 comments.map((comment) => (
-                  <Comment 
-                    key={comment._id} 
-                    comment={comment} 
-                    currentUser={currentUser}
-                    onDelete={canDeleteComment(comment) ? () => handleDeleteComment(comment._id) : null}
-                  />
+                  <Comment key={comment._id} comment={comment} currentUser={currentUser} />
                 ))
               )}
             </div>
           </div>
         </div>
 
-        <div className="case-view-actions">
+        <div className="case-actions">
           {isEditing ? (
             <>
+              <button className="cancel-button" onClick={handleCancel} disabled={loading}>
+                Cancel
+              </button>
               <button className="save-button" onClick={handleSave} disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button className="cancel-button" onClick={handleCancel}>
-                Cancel
               </button>
             </>
           ) : (
             <>
-              {canEditCase() && (
-                <button className="edit-button" onClick={() => setIsEditing(true)}>
+              <button className="cancel-button" onClick={onClose}>
+                Close
+              </button>
+              {canEdit() && (
+                <button className="edit-button" onClick={handleEdit}>
                   Edit Case
+                </button>
+              )}
+              {canDelete() && (
+                <button className="delete-button" onClick={handleDelete} disabled={loading}>
+                  {loading ? 'Deleting...' : 'Delete Case'}
                 </button>
               )}
             </>
           )}
-          <button className="close-detail-button" onClick={onClose}>
-            Close
-          </button>
         </div>
       </div>
     </div>
   );
-};
-
-const getInitials = (firstName, lastName) => {
-  if (!firstName || !lastName) return '?';
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-};
-
-const getAvatarColor = (userId) => {
-  const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-  const index = userId ? userId.charCodeAt(0) % colors.length : 0;
-  return colors[index];
 };
 
 export default CaseView; 

@@ -23,90 +23,107 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (task && isOpen) {
+    if (task) {
       setFormData({
         title: task.title || '',
         description: task.description || '',
         assignedTo: task.assignedTo || '',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
         priority: task.priority || 'Medium',
         status: task.status || 'Backlog',
         caseId: task.caseId || '',
         caseName: task.caseName || ''
       });
-      
-      const user = JSON.parse(localStorage.getItem('user'));
-      setCurrentUser(user);
-      fetchComments();
     }
-  }, [task, isOpen]);
+  }, [task]);
+
+  useEffect(() => {
+    if (isOpen && task?._id) {
+      fetchComments();
+      fetchCurrentUser();
+    }
+  }, [isOpen, task?._id]);
+
+  const fetchCurrentUser = () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(user);
+  };
 
   const fetchComments = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:3000/api/tasks/${task._id}/comments`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      setComments(response.data);
+      // Sort comments by creation date (newest first)
+      const sortedComments = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setComments(sortedComments);
     } catch (error) {
-      console.error('Failed to fetch comments:', error);
+      console.error('Error fetching comments:', error);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
       setError('');
-
-      const token = localStorage.getItem('token');
+      
       const response = await axios.put(`http://localhost:3000/api/tasks/${task._id}`, formData, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
-      onTaskUpdated(response.data);
+      
       setIsEditing(false);
+      if (onTaskUpdated) {
+        onTaskUpdated(response.data);
+      }
     } catch (error) {
-      setError('Failed to update task');
+      setError(error.response?.data?.message || 'Failed to update task');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:3000/api/tasks/${task._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+    if (!window.confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.delete(`http://localhost:3000/api/tasks/${task._id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (onTaskDeleted) {
         onTaskDeleted(task._id);
-        onClose();
-      } catch (error) {
-        setError('Failed to delete task');
-      } finally {
-        setLoading(false);
       }
+      onClose();
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to delete task');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
+    setIsEditing(false);
     setFormData({
       title: task.title || '',
       description: task.description || '',
       assignedTo: task.assignedTo || '',
-      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
       priority: task.priority || 'Medium',
       status: task.status || 'Backlog',
       caseId: task.caseId || '',
       caseName: task.caseName || ''
     });
-    setIsEditing(false);
     setError('');
   };
 
@@ -115,42 +132,23 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
 
     try {
       setCommentLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:3000/api/tasks/${task._id}/comments`, {
-        text: newComment.trim()
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await axios.post(
+        `http://localhost:3000/api/tasks/${task._id}/comments`,
+        { text: newComment.trim() },
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }
+      );
 
-      setComments(prev => [...prev, response.data]);
+      // Refresh comments from server to get the correct order
+      await fetchComments();
       setNewComment('');
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      console.error('Error adding comment:', error);
+      alert('Failed to add comment. Please try again.');
     } finally {
       setCommentLoading(false);
     }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/comments/${commentId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setComments(prev => prev.filter(comment => comment._id !== commentId));
-    } catch (error) {
-      console.error('Failed to delete comment:', error);
-    }
-  };
-
-  const canEditTask = () => {
-    if (!currentUser || !task) return false;
-    return task.createdBy === currentUser.id || task.assignedTo === `${currentUser.firstName} ${currentUser.lastName}`;
-  };
-
-  const canDeleteComment = (comment) => {
-    if (!currentUser) return false;
-    return comment.userId === currentUser.id;
   };
 
   if (!isOpen) return null;
@@ -162,155 +160,104 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
           <h2>{isEditing ? 'Edit Task' : 'Task Details'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-
+        
         <div className="task-detail-content">
           {error && <div className="error-message">{error}</div>}
-
-          <div className="task-form-section">
+          
+          <div className="task-form">
             <div className="form-group">
-              <label htmlFor="title">Title:</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Enter task title"
-                />
-              ) : (
-                <div className="readonly-field">{formData.title}</div>
-              )}
+              <label>Title</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+              />
             </div>
-
+            
             <div className="form-group">
-              <label htmlFor="description">Description:</label>
-              {isEditing ? (
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter task description"
-                  rows="3"
-                />
-              ) : (
-                <div className="readonly-field">{formData.description || 'No description'}</div>
-              )}
+              <label>Assigned To</label>
+              <input
+                type="text"
+                name="assignedTo"
+                value={formData.assignedTo}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+              />
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="assignedTo">Assigned To:</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    id="assignedTo"
-                    name="assignedTo"
-                    value={formData.assignedTo}
-                    onChange={handleInputChange}
-                    placeholder="Enter assignee"
-                  />
-                ) : (
-                  <div className="readonly-field">{formData.assignedTo || 'Unassigned'}</div>
-                )}
-              </div>
-              <div className="form-group">
-                <label htmlFor="dueDate">Due Date:</label>
-                {isEditing ? (
-                  <input
-                    type="date"
-                    id="dueDate"
-                    name="dueDate"
-                    value={formData.dueDate}
-                    onChange={handleInputChange}
-                  />
-                ) : (
-                  <div className="readonly-field">
-                    {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString() : 'No due date'}
-                  </div>
-                )}
-              </div>
+            
+            <div className="form-group">
+              <label>Due Date</label>
+              <input
+                type="date"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+              />
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="priority">Priority:</label>
-                {isEditing ? (
-                  <select
-                    id="priority"
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                ) : (
-                  <div className="readonly-field">
-                    <span className={`priority-badge priority-${formData.priority.toLowerCase()}`}>
-                      {formData.priority}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="form-group">
-                <label htmlFor="status">Status:</label>
-                {isEditing ? (
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Backlog">Backlog</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Blocked">Blocked</option>
-                    <option value="Complete">Complete</option>
-                  </select>
-                ) : (
-                  <div className="readonly-field">
-                    <span className={`status-badge status-${formData.status.toLowerCase().replace(' ', '-')}`}>
-                      {formData.status}
-                    </span>
-                  </div>
-                )}
-              </div>
+            
+            <div className="form-group">
+              <label>Priority</label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="caseId">Case ID:</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    id="caseId"
-                    name="caseId"
-                    value={formData.caseId}
-                    onChange={handleInputChange}
-                    placeholder="Enter case ID"
-                  />
-                ) : (
-                  <div className="readonly-field">{formData.caseId || 'No case linked'}</div>
-                )}
-              </div>
-              <div className="form-group">
-                <label htmlFor="caseName">Case Name:</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    id="caseName"
-                    name="caseName"
-                    value={formData.caseName}
-                    onChange={handleInputChange}
-                    placeholder="Enter case name"
-                  />
-                ) : (
-                  <div className="readonly-field">{formData.caseName || 'No case linked'}</div>
-                )}
-              </div>
+            
+            <div className="form-group">
+              <label>Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              >
+                <option value="Backlog">Backlog</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Complete">Complete</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label>Case ID</label>
+              <input
+                type="text"
+                name="caseId"
+                value={formData.caseId}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+              />
+            </div>
+            
+            <div className="form-group full-width">
+              <label>Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+                rows="4"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Case Name</label>
+              <input
+                type="text"
+                name="caseName"
+                value={formData.caseName}
+                onChange={handleInputChange}
+                readOnly={!isEditing}
+              />
             </div>
           </div>
 
@@ -323,8 +270,8 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
             <div className="comment-input-section">
               <div className="comment-input-container">
                 <div className="comment-input-avatar">
-                  <div className="avatar-initials" style={{ backgroundColor: getAvatarColor(currentUser?.id || '') }}>
-                    {getInitials(currentUser?.firstName, currentUser?.lastName)}
+                  <div className="avatar-initials">
+                    {currentUser ? `${currentUser.firstName?.[0]}${currentUser.lastName?.[0]}` : 'U'}
                   </div>
                 </div>
                 <div className="comment-input">
@@ -336,7 +283,10 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
                     rows="3" 
                   />
                   <div className="comment-actions">
-                    <button className="comment-cancel-btn" onClick={() => setNewComment('')}>
+                    <button 
+                      className="comment-cancel-btn" 
+                      onClick={() => setNewComment('')}
+                    >
                       Cancel
                     </button>
                     <button 
@@ -356,60 +306,40 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
                 <div className="comments-empty">No comments yet. Be the first to comment!</div>
               ) : (
                 comments.map((comment) => (
-                  <Comment 
-                    key={comment._id} 
-                    comment={comment} 
-                    currentUser={currentUser}
-                    onDelete={canDeleteComment(comment) ? () => handleDeleteComment(comment._id) : null}
-                  />
+                  <Comment key={comment._id} comment={comment} currentUser={currentUser} />
                 ))
               )}
             </div>
           </div>
         </div>
-
-        <div className="task-detail-actions">
+        
+        <div className="task-actions">
           {isEditing ? (
             <>
+              <button className="cancel-button" onClick={handleCancel} disabled={loading}>
+                Cancel
+              </button>
               <button className="save-button" onClick={handleSave} disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button className="cancel-button" onClick={handleCancel}>
-                Cancel
               </button>
             </>
           ) : (
             <>
-              {canEditTask() && (
-                <button className="edit-button" onClick={() => setIsEditing(true)}>
-                  Edit Task
-                </button>
-              )}
-              {task.createdBy === currentUser?.id && (
-                <button className="delete-button" onClick={handleDelete} disabled={loading}>
-                  {loading ? 'Deleting...' : 'Delete Task'}
-                </button>
-              )}
+              <button className="cancel-button" onClick={onClose}>
+                Close
+              </button>
+              <button className="save-button" onClick={() => setIsEditing(true)}>
+                Edit Task
+              </button>
+              <button className="delete-button" onClick={handleDelete} disabled={loading}>
+                {loading ? 'Deleting...' : 'Delete Task'}
+              </button>
             </>
           )}
-          <button className="close-detail-button" onClick={onClose}>
-            Close
-          </button>
         </div>
       </div>
     </div>
   );
-};
-
-const getInitials = (firstName, lastName) => {
-  if (!firstName || !lastName) return '?';
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-};
-
-const getAvatarColor = (userId) => {
-  const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-  const index = userId ? userId.charCodeAt(0) % colors.length : 0;
-  return colors[index];
 };
 
 export default TaskDetail; 
