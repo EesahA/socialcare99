@@ -1,0 +1,238 @@
+.auth-home {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-sections {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.summary-section {
+  flex: 0 0 450px; /* Slightly wider for better proportions */
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem; /* Increased gap for better spacing */
+  padding: 0.5rem; /* Add padding around the grid */
+}
+
+.summary-card {
+  background: white;
+  border-radius: 12px; /* Increased border radius */
+  padding: 1.75rem 1.5rem; /* Adjusted padding */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Softer shadow */
+  border-left: 5px solid; /* Thicker border */
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.summary-card:hover::before {
+  transform: translateX(100%);
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.summary-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem; /* Increased gap */
+  height: 100%;
+}
+
+.summary-card-icon {
+  font-size: 2.25rem; /* Slightly larger icons */
+  width: 60px; /* Larger icon container */
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px; /* Rounded corners */
+  background: rgba(52, 152, 219, 0.1);
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  transition: transform 0.3s ease;
+}
+
+.summary-card:hover .summary-card-icon {
+  transform: scale(1.1);
+}
+
+.summary-card-info {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
+}
+
+.summary-card-info h3 {
+  margin: 0 0 0.75rem 0;
+  color: #6c757d; /* Softer color */
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.75px;
+  line-height: 1.2;
+}
+
+.summary-card-value {
+  margin: 0;
+  font-size: 2.25rem; /* Slightly larger */
+  font-weight: 700;
+  color: #2c3e50;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+/* Individual card color variations */
+.summary-card:nth-child(1) .summary-card-icon {
+  background: rgba(52, 152, 219, 0.15);
+}
+
+.summary-card:nth-child(2) .summary-card-icon {
+  background: rgba(241, 196, 15, 0.15);
+}
+
+.summary-card:nth-child(3) .summary-card-icon {
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.summary-card:nth-child(4) .summary-card-icon {
+  background: rgba(230, 126, 34, 0.15);
+}
+
+.schedule-section {
+  flex: 1;
+  min-height: 350px;
+}
+
+.schedule-section h2 {
+  display: none;
+}
+
+.kanban-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.kanban-section h2 {
+  margin-bottom: 1.75rem;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  min-height: 400px;
+}
+
+.kanban-column {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.25rem;
+  min-height: 300px;
+  border: 1px solid #e9ecef;
+}
+
+.kanban-column-header {
+  margin: 0 0 1.25rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.kanban-column-content {
+  min-height: 250px;
+}
+
+.kanban-task {
+  background: white;
+  border-radius: 8px;
+  padding: 0.875rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  border-left: 3px solid #3498db;
+}
+
+.kanban-task:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .dashboard-sections {
+    flex-direction: column;
+  }
+  
+  .summary-section {
+    flex: none;
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-home {
+    padding: 1rem;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .summary-card {
+    padding: 1.5rem 1.25rem;
+  }
+  
+  .summary-card-content {
+    gap: 1rem;
+  }
+  
+  .summary-card-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.75rem;
+  }
+  
+  .summary-card-value {
+    font-size: 1.875rem;
+  }
+  
+  .kanban-board {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+} 
