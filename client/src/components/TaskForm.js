@@ -9,12 +9,12 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
     assignedTo: '',
     dueDate: '',
     priority: 'Medium',
-    status: 'Backlog',
-    caseId: '',
-    caseName: ''
+    status: 'Backlog'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Update form when prefillStatus changes
   useEffect(() => {
@@ -25,6 +25,28 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
       }));
     }
   }, [prefillStatus]);
+
+  // Fetch users when form opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+    }
+  }, [isOpen]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -43,10 +65,6 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
     }
     if (!formData.dueDate) {
       setError('Due date is required');
-      return;
-    }
-    if (!formData.caseId.trim() || !formData.caseName.trim()) {
-      setError('Case ID and Case Name are required');
       return;
     }
 
@@ -69,9 +87,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
         assignedTo: '',
         dueDate: '',
         priority: 'Medium',
-        status: 'Backlog',
-        caseId: '',
-        caseName: ''
+        status: 'Backlog'
       });
 
       onClose();
@@ -113,30 +129,55 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="description">Task Description</label>
+            <label htmlFor="description">Description</label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Additional context, instructions, or relevant notes"
-              rows="4"
+              rows="3"
             />
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="assignedTo">Assigned To</label>
-              <input
-                type="text"
-                id="assignedTo"
-                name="assignedTo"
-                value={formData.assignedTo}
-                onChange={handleInputChange}
-                placeholder="Team member name"
-              />
+              {loadingUsers ? (
+                <select disabled>
+                  <option>Loading users...</option>
+                </select>
+              ) : (
+                <select
+                  id="assignedTo"
+                  name="assignedTo"
+                  value={formData.assignedTo}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select a team member</option>
+                  {users.map(user => (
+                    <option key={user._id} value={`${user.firstName} ${user.lastName}`}>
+                      {user.firstName} {user.lastName} ({user.role})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
+            <div className="form-group">
+              <label htmlFor="dueDate">Due Date *</label>
+              <input
+                type="datetime-local"
+                id="dueDate"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="priority">Priority</label>
               <select
@@ -149,20 +190,6 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
               </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="dueDate">Due Date *</label>
-              <input
-                type="datetime-local"
-                id="dueDate"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleInputChange}
-                required
-              />
             </div>
 
             <div className="form-group">
@@ -178,34 +205,6 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
                 <option value="Blocked">Blocked</option>
                 <option value="Complete">Complete</option>
               </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="caseId">Case ID *</label>
-              <input
-                type="text"
-                id="caseId"
-                name="caseId"
-                value={formData.caseId}
-                onChange={handleInputChange}
-                placeholder="Enter case ID"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="caseName">Case Name *</label>
-              <input
-                type="text"
-                id="caseName"
-                name="caseName"
-                value={formData.caseName}
-                onChange={handleInputChange}
-                placeholder="Enter case name"
-                required
-              />
             </div>
           </div>
 

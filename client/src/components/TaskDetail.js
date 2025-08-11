@@ -21,6 +21,8 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -41,12 +43,28 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
     if (isOpen && task?._id) {
       fetchComments();
       fetchCurrentUser();
+      fetchUsers();
     }
   }, [isOpen, task?._id]);
 
   const fetchCurrentUser = () => {
     const user = JSON.parse(localStorage.getItem('user'));
     setCurrentUser(user);
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
   const fetchComments = async () => {
@@ -178,13 +196,25 @@ const TaskDetail = ({ task, isOpen, onClose, onTaskUpdated, onTaskDeleted }) => 
             
             <div className="form-group">
               <label>Assigned To</label>
-              <input
-                type="text"
-                name="assignedTo"
-                value={formData.assignedTo}
-                onChange={handleInputChange}
-                readOnly={!isEditing}
-              />
+              {loadingUsers ? (
+                <select disabled>
+                  <option>Loading users...</option>
+                </select>
+              ) : (
+                <select
+                  name="assignedTo"
+                  value={formData.assignedTo}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                >
+                  <option value="">Select a team member</option>
+                  {users.map(user => (
+                    <option key={user._id} value={`${user.firstName} ${user.lastName}`}>
+                      {user.firstName} {user.lastName} ({user.role})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             
             <div className="form-group">
