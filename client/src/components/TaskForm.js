@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './TaskForm.css';
 
-const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
+const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null, prefillCaseId = null }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -19,7 +19,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
   const [cases, setCases] = useState([]);
   const [loadingCases, setLoadingCases] = useState(false);
 
-  // Update form when prefillStatus changes
+  // Update form when prefillStatus or prefillCaseId changes
   useEffect(() => {
     if (prefillStatus) {
       setFormData(prev => ({
@@ -27,7 +27,13 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
         status: prefillStatus
       }));
     }
-  }, [prefillStatus]);
+    if (prefillCaseId) {
+      setFormData(prev => ({
+        ...prev,
+        assignedCase: prefillCaseId
+      }));
+    }
+  }, [prefillStatus, prefillCaseId]);
 
   // Fetch users and cases when form opens
   useEffect(() => {

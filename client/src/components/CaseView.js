@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Comment from './Comment';
+import TaskForm from './TaskForm';
 import './CaseView.css';
 
 const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) => {
@@ -14,6 +15,9 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   const [error, setError] = useState('');
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [caseTasks, setCaseTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   useEffect(() => {
     setCurrentCaseData(caseData);
@@ -24,6 +28,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
       fetchComments();
       fetchCurrentUser();
       fetchUsers();
+      fetchCaseTasks();
     }
   }, [isOpen, caseData?._id]);
 
@@ -44,6 +49,36 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     } finally {
       setLoadingUsers(false);
     }
+  };
+
+  const fetchCaseTasks = async () => {
+    try {
+      setLoadingTasks(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/tasks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      // Filter tasks that are assigned to this case
+      const tasksForThisCase = response.data.filter(task => 
+        task.caseId === caseData.caseId
+      );
+      
+      setCaseTasks(tasksForThisCase);
+    } catch (error) {
+      console.error('Error fetching case tasks:', error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const handleCreateTask = () => {
+    setShowTaskForm(true);
+  };
+
+  const handleTaskCreated = (newTask) => {
+    setCaseTasks(prev => [newTask, ...prev]);
+    setShowTaskForm(false);
   };
 
   const fetchComments = async () => {
@@ -466,8 +501,58 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
 
             <div className="case-section">
               <h3>Follow-Up Actions</h3>
-              {renderEditableField('New Tasks', 'newTasks', currentCaseData.newTasks, 'textarea')}
+              
+              <div className="form-group">
+                <label>Tasks for this Case:</label>
+                <div className="task-creation-section">
+                  <button 
+                    type="button" 
+                    className="create-task-button"
+                    onClick={handleCreateTask}
+                  >
+                    + Create Task
+                  </button>
+                  <p className="task-note">Create Task for this Case</p>
+                </div>
+              </div>
+
+              <div className="form-group">
+                {loadingTasks ? (
+                  <div className="loading-tasks">Loading tasks...</div>
+                ) : caseTasks.length > 0 ? (
+                  <div className="case-tasks-list">
+                    {caseTasks.map(task => (
+                      <div key={task._id} className="case-task-item">
+                        <div className="task-header">
+                          <h4 className="task-title">{task.title}</h4>
+                          <span className={`task-status task-status-${task.status.toLowerCase().replace(' ', '-')}`}>
+                            {task.status}
+                          </span>
+                        </div>
+                        <div className="task-details">
+                          <p className="task-description">{task.description}</p>
+                          <div className="task-meta">
+                            <span className="task-assigned">Assigned to: {task.assignedTo || 'Unassigned'}</span>
+                            <span className="task-due">Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}</span>
+                            <span className={`task-priority task-priority-${task.priority.toLowerCase()}`}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-tasks">No tasks created for this case yet.</div>
+                )}
+              </div>
+
               {renderEditableField('Next Planned Review Date', 'nextPlannedReviewDate', currentCaseData.nextPlannedReviewDate, 'date')}
+              
+              <div className="form-group">
+                <label>Meeting Schedule:</label>
+                {renderEditableField('New Tasks', 'newTasks', currentCaseData.newTasks, 'textarea')}
+              </div>
             </div>
 
             {renderAttachments()}
@@ -561,6 +646,14 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
           )}
         </div>
       </div>
+      {showTaskForm && (
+        <TaskForm
+          isOpen={showTaskForm}
+          prefillCaseId={caseData.caseId}
+          onClose={() => setShowTaskForm(false)}
+          onTaskCreated={handleTaskCreated}
+        />
+      )}
     </div>
   );
 };

@@ -28,9 +28,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
     meetingSummary: '',
     concernsRaised: '',
     immediateActionsTaken: '',
-    clientWishesFeelings: '',
-    newTasks: [],
-    nextPlannedReviewDate: ''
+    clientWishesFeelings: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -100,15 +98,20 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         setError('Please specify the other case type');
         return;
       }
+      
+      setError('');
+      setCurrentPage(2);
+    } else if (currentPage === 2) {
+      setError('');
+      setCurrentPage(3);
     }
-    
-    setError('');
-    setCurrentPage(prev => Math.min(prev + 1, 4));
+    // Removed page 4 navigation - case will be submitted after page 3
   };
 
   const prevPage = (e) => {
     e.preventDefault();
-    setCurrentPage(prev => Math.max(prev - 1, 1));
+    setCurrentPage(currentPage - 1);
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -154,9 +157,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         meetingSummary: formData.meetingSummary || undefined,
         concernsRaised: formData.concernsRaised || undefined,
         immediateActionsTaken: formData.immediateActionsTaken || undefined,
-        clientWishesFeelings: formData.clientWishesFeelings || undefined,
-        newTasks: formData.newTasks,
-        nextPlannedReviewDate: formData.nextPlannedReviewDate ? new Date(formData.nextPlannedReviewDate) : undefined
+        clientWishesFeelings: formData.clientWishesFeelings || undefined
       };
 
       Object.keys(caseData).forEach(key => {
@@ -197,9 +198,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         meetingSummary: '',
         concernsRaised: '',
         immediateActionsTaken: '',
-        clientWishesFeelings: '',
-        newTasks: [],
-        nextPlannedReviewDate: ''
+        clientWishesFeelings: ''
       });
       setCurrentPage(1);
 
@@ -217,10 +216,6 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
     }
   };
 
-  const createTask = () => {
-    console.log('Create task from case form');
-  };
-
   const handleCancel = (e) => {
     e.preventDefault();
     onClose();
@@ -232,7 +227,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
     <div className="case-form-overlay">
       <div className="case-form-modal">
         <div className="case-form-header">
-          <h2>Create New Case - Page {currentPage} of 4</h2>
+          <h2>Create New Case - Page {currentPage} of 3</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 
@@ -240,7 +235,6 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
           <div className={`progress-step ${currentPage >= 1 ? 'active' : ''}`}>1. Case Overview</div>
           <div className={`progress-step ${currentPage >= 2 ? 'active' : ''}`}>2. Contact & Safeguarding</div>
           <div className={`progress-step ${currentPage >= 3 ? 'active' : ''}`}>3. Meeting Notes</div>
-          <div className={`progress-step ${currentPage >= 4 ? 'active' : ''}`}>4. Follow-Up Actions</div>
         </div>
 
         <form onSubmit={handleSubmit} className="case-form">
@@ -602,47 +596,6 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
             </div>
           )}
 
-          {currentPage === 4 && (
-            <div className="form-page">
-              <h3>Follow-Up Actions / Tasks</h3>
-              
-              <div className="form-group">
-                <label>New Tasks from this Meeting:</label>
-                <div className="task-creation-section">
-                  <button 
-                    type="button" 
-                    className="create-task-button"
-                    onClick={createTask}
-                  >
-                    + Create Task
-                  </button>
-                  <p className="task-note">Tasks will be created and linked to this case</p>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="nextPlannedReviewDate">Next Planned Review Date:</label>
-                <input
-                  type="date"
-                  id="nextPlannedReviewDate"
-                  name="nextPlannedReviewDate"
-                  value={formData.nextPlannedReviewDate}
-                  onChange={handleInputChange}
-                  disabled
-                  className="disabled-input"
-                />
-                <small className="disabled-note">(Feature coming soon)</small>
-              </div>
-
-              <div className="form-group">
-                <label>File Attachments:</label>
-                <div className="attachment-note">
-                  <p>📎 File attachments can be added after creating the case using the expand view.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="form-actions">
             {currentPage > 1 && (
               <button type="button" className="prev-button" onClick={prevPage}>
@@ -650,7 +603,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
               </button>
             )}
             
-            {currentPage < 4 ? (
+            {currentPage < 3 ? (
               <button type="button" className="next-button" onClick={nextPage}>
                 Next
               </button>
