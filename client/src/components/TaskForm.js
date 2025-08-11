@@ -7,6 +7,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
     title: '',
     description: '',
     assignedTo: '',
+    assignedCase: '',
     dueDate: '',
     priority: 'Medium',
     status: 'Backlog'
@@ -15,6 +16,8 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
   const [error, setError] = useState('');
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [cases, setCases] = useState([]);
+  const [loadingCases, setLoadingCases] = useState(false);
 
   // Update form when prefillStatus changes
   useEffect(() => {
@@ -26,10 +29,11 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
     }
   }, [prefillStatus]);
 
-  // Fetch users when form opens
+  // Fetch users and cases when form opens
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      fetchCases();
     }
   }, [isOpen]);
 
@@ -45,6 +49,25 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
       console.error('Failed to fetch users:', error);
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const fetchCases = async () => {
+    try {
+      setLoadingCases(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3000/api/cases', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      // Filter for open cases only (Open and Ongoing status)
+      const openCases = response.data.filter(caseData => 
+        caseData.caseStatus === 'Open' || caseData.caseStatus === 'Ongoing'
+      );
+      setCases(openCases);
+    } catch (error) {
+      console.error('Failed to fetch cases:', error);
+    } finally {
+      setLoadingCases(false);
     }
   };
 
@@ -72,10 +95,30 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
       setLoading(true);
       setError('');
 
-      const response = await axios.post('http://localhost:3000/api/tasks', {
-        ...formData,
+      // Get case details if a case is selected
+      let caseId = '';
+      let caseName = '';
+      if (formData.assignedCase) {
+        const selectedCase = cases.find(c => c.caseId === formData.assignedCase);
+        if (selectedCase) {
+          caseId = selectedCase.caseId;
+          caseName = selectedCase.clientFullName;
+        }
+      }
+
+      const taskData = {
+        title: formData.title,
+        description: formData.description,
+        assignedTo: formData.assignedTo,
+        dueDate: formData.dueDate,
+        priority: formData.priority,
+        status: formData.status,
+        caseId: caseId,
+        caseName: caseName,
         createdAt: new Date().toISOString()
-      }, {
+      };
+
+      const response = await axios.post('http://localhost:3000/api/tasks', taskData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -85,6 +128,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
         title: '',
         description: '',
         assignedTo: '',
+        assignedCase: '',
         dueDate: '',
         priority: 'Medium',
         status: 'Backlog'
@@ -165,6 +209,31 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
             </div>
 
             <div className="form-group">
+              <label htmlFor="assignedCase">Assigned Case</label>
+              {loadingCases ? (
+                <select disabled>
+                  <option>Loading cases...</option>
+                </select>
+              ) : (
+                <select
+                  id="assignedCase"
+                  name="assignedCase"
+                  value={formData.assignedCase}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select a case (optional)</option>
+                  {cases.map(caseData => (
+                    <option key={caseData._id} value={caseData.caseId}>
+                      {caseData.caseId} - {caseData.clientFullName} ({caseData.caseStatus})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label htmlFor="dueDate">Due Date *</label>
               <input
                 type="datetime-local"
@@ -175,9 +244,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
                 required
               />
             </div>
-          </div>
 
-          <div className="form-row">
             <div className="form-group">
               <label htmlFor="priority">Priority</label>
               <select
@@ -191,7 +258,9 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null }) => {
                 <option value="High">High</option>
               </select>
             </div>
+          </div>
 
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="status">Status</label>
               <select

@@ -16,7 +16,7 @@ router.get('/', auth, async (req, res) => {
 // Create new task
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, description, assignedTo, dueDate, priority, status } = req.body;
+    const { title, description, assignedTo, dueDate, priority, status, caseId, caseName } = req.body;
 
     if (!title || !dueDate) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -29,6 +29,8 @@ router.post('/', auth, async (req, res) => {
       dueDate: new Date(dueDate),
       priority: priority || 'Medium',
       status: status || 'Backlog',
+      caseId,
+      caseName,
       createdBy: req.user.id,
       createdAt: new Date(),
       updatedAt: new Date()
