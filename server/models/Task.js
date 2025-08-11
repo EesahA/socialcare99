@@ -30,12 +30,10 @@ const taskSchema = new mongoose.Schema({
   },
   caseId: {
     type: String,
-    required: true,
     trim: true
   },
   caseName: {
     type: String,
-    required: true,
     trim: true
   },
   createdBy: {
