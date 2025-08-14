@@ -6,6 +6,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({
     caseId: generateCaseId(),
     clientFullName: '',
@@ -45,6 +46,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      fetchCurrentUser();
     }
   }, [isOpen]);
 
@@ -60,6 +62,25 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
       console.error('Failed to fetch users:', error);
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const fetchCurrentUser = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      setCurrentUser(user);
+      
+      // Pre-select the current user as an assigned social worker
+      if (user && user.firstName && user.lastName) {
+        const currentUserFullName = `${user.firstName} ${user.lastName}`;
+        setFormData(prev => ({
+          ...prev,
+          assignedSocialWorkers: [currentUserFullName]
+        }));
+      }
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+      setCurrentUser(null);
     }
   };
 
@@ -99,6 +120,11 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         return;
       }
       
+      if (!formData.assignedSocialWorkers || formData.assignedSocialWorkers.length === 0) {
+        setError('Please assign at least one social worker to this case');
+        return;
+      }
+      
       setError('');
       setCurrentPage(2);
     } else if (currentPage === 2) {
@@ -129,6 +155,11 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
 
     if (formData.caseType === 'Other' && !formData.otherCaseType) {
       setError('Please specify the other case type');
+      return;
+    }
+
+    if (!formData.assignedSocialWorkers || formData.assignedSocialWorkers.length === 0) {
+      setError('Please assign at least one social worker to this case');
       return;
     }
 
@@ -176,6 +207,8 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
       
       onCaseCreated(response.data);
       
+      // Reset form and re-initialize with current user
+      const currentUserFullName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : '';
       setFormData({
         caseId: generateCaseId(),
         clientFullName: '',
@@ -185,7 +218,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
         otherCaseType: '',
         caseStatus: 'Open',
         priorityLevel: 'Medium',
-        assignedSocialWorkers: [],
+        assignedSocialWorkers: currentUserFullName ? [currentUserFullName] : [],
         clientAddress: '',
         phoneNumber: '',
         emailAddress: '',
@@ -373,7 +406,7 @@ const CaseForm = ({ isOpen, onClose, onCaseCreated }) => {
               </div>
 
               <div className="form-group">
-                <label>Assigned Social Worker(s):</label>
+                <label>Assigned Social Worker(s): <span className="required">*</span></label>
                 {loadingUsers ? (
                   <div className="loading-users">Loading users...</div>
                 ) : (
