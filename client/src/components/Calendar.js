@@ -5,6 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import axios from 'axios';
 import TaskDetail from './TaskDetail';
+import MeetingScheduler from './MeetingScheduler';
 import './Calendar.css';
 
 const Calendar = () => {
@@ -13,20 +14,29 @@ const Calendar = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
 
   useEffect(() => {
-    fetchTasks();
+    fetchEvents();
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchEvents = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/tasks', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      
+      // Fetch both tasks and meetings
+      const [tasksResponse, meetingsResponse] = await Promise.all([
+        axios.get('http://localhost:3000/api/tasks', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:3000/api/meetings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
 
-      const taskEvents = response.data.map(task => {
+      const taskEvents = tasksResponse.data.map(task => {
         const dueDate = new Date(task.dueDate);
         const now = new Date();
         const isOverdue = dueDate < now && task.status !== 'Completed';
@@ -56,14 +66,15 @@ const Calendar = () => {
         }
 
         return {
-          id: task._id,
-          title: task.title,
+          id: `task-${task._id}`,
+          title: `📋 ${task.title}`,
           date: task.dueDate,
           backgroundColor: backgroundColor,
           borderColor: borderColor,
           textColor: '#fff',
           extendedProps: {
-            fullTask: task, // Store the complete task object
+            type: 'task',
+            fullTask: task,
             priority: task.priority,
             status: task.status,
             assignedTo: task.assignedTo,
@@ -72,9 +83,67 @@ const Calendar = () => {
         };
       });
 
-      setEvents(taskEvents);
+      const meetingEvents = meetingsResponse.data.map(meeting => {
+        const scheduledAt = new Date(meeting.scheduledAt);
+        const now = new Date();
+        const isPast = scheduledAt < now && meeting.status === 'Scheduled';
+
+        let backgroundColor = '#9b59b6'; // Purple for meetings
+        let borderColor = '#9b59b6';
+
+        // Color coding based on status
+        if (meeting.status === 'Completed') {
+          backgroundColor = '#95a5a6'; // Gray for completed
+          borderColor = '#95a5a6';
+        } else if (meeting.status === 'Cancelled') {
+          backgroundColor = '#e74c3c'; // Red for cancelled
+          borderColor = '#e74c3c';
+        } else if (isPast) {
+          backgroundColor = '#e67e22'; // Orange for past meetings
+          borderColor = '#e67e22';
+        }
+
+        // Format duration for display
+        const formatDuration = (minutes) => {
+          if (minutes === 480) return 'Full Day';
+          const hours = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          if (hours > 0 && mins > 0) {
+            return `${hours}h ${mins}m`;
+          } else if (hours > 0) {
+            return `${hours}h`;
+          } else {
+            return `${mins}m`;
+          }
+        };
+
+        return {
+          id: `meeting-${meeting._id}`,
+          title: `📅 ${meeting.title} (${meeting.meetingType})`,
+          date: meeting.scheduledAt,
+          backgroundColor: backgroundColor,
+          borderColor: borderColor,
+          textColor: '#fff',
+          extendedProps: {
+            type: 'meeting',
+            fullMeeting: meeting,
+            meetingType: meeting.meetingType,
+            duration: formatDuration(meeting.duration),
+            caseName: meeting.caseName,
+            status: meeting.status,
+            isPast: isPast
+          }
+        };
+      });
+
+      // Combine and sort all events
+      const allEvents = [...taskEvents, ...meetingEvents].sort((a, b) => 
+        new Date(a.date) - new Date(b.date)
+      );
+
+      setEvents(allEvents);
     } catch (error) {
-      console.error('Failed to fetch tasks:', error);
+      console.error('Failed to fetch events:', error);
     } finally {
       setLoading(false);
     }
@@ -85,9 +154,17 @@ const Calendar = () => {
   };
 
   const handleEventClick = (arg) => {
-    const task = arg.event.extendedProps.fullTask;
-    setSelectedTask(task);
-    setShowTaskDetail(true);
+    const eventType = arg.event.extendedProps.type;
+    
+    if (eventType === 'task') {
+      const task = arg.event.extendedProps.fullTask;
+      setSelectedTask(task);
+      setShowTaskDetail(true);
+    } else if (eventType === 'meeting') {
+      const meeting = arg.event.extendedProps.fullMeeting;
+      setSelectedMeeting(meeting);
+      setShowMeetingScheduler(true);
+    }
   };
 
   const handleEventDrop = (arg) => {
@@ -100,8 +177,18 @@ const Calendar = () => {
   };
 
   const handleTaskUpdated = () => {
-    fetchTasks(); // Refresh the calendar
+    fetchEvents(); // Refresh the calendar
     setShowTaskDetail(false);
+  };
+
+  const handleMeetingSchedulerClose = () => {
+    setSelectedMeeting(null);
+    setShowMeetingScheduler(false);
+  };
+
+  const handleMeetingScheduled = () => {
+    fetchEvents(); // Refresh the calendar
+    setShowMeetingScheduler(false);
   };
 
   const toggleExpanded = () => {
@@ -115,7 +202,7 @@ const Calendar = () => {
         <div className="calendar-actions">
           <button 
             className="refresh-button"
-            onClick={fetchTasks}
+            onClick={fetchEvents}
             disabled={loading}
           >
             {loading ? 'Loading...' : 'Refresh'}
@@ -131,7 +218,7 @@ const Calendar = () => {
       </div>
       
       <div className="calendar-content">
-        {loading && <div className="calendar-loading">Loading tasks...</div>}
+        {loading && <div className="calendar-loading">Loading events...</div>}
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={isExpanded ? {
@@ -167,6 +254,15 @@ const Calendar = () => {
           isOpen={showTaskDetail}
           onClose={handleTaskDetailClose}
           onTaskUpdated={handleTaskUpdated}
+        />
+      )}
+
+      {selectedMeeting && (
+        <MeetingScheduler
+          isOpen={showMeetingScheduler}
+          onClose={handleMeetingSchedulerClose}
+          onMeetingScheduled={handleMeetingScheduled}
+          editingMeeting={selectedMeeting}
         />
       )}
     </div>
