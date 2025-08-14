@@ -5,7 +5,7 @@ import TaskForm from './TaskForm';
 import MeetingScheduler from './MeetingScheduler';
 import './CaseView.css';
 
-const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) => {
+const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted, onArchiveCase, onUnarchiveCase }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
@@ -757,6 +757,19 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
                 <button className="edit-button" onClick={handleEdit}>
                   Edit Case
                 </button>
+              )}
+              {caseData.archived ? (
+                onUnarchiveCase && (
+                  <button className="unarchive-button" onClick={() => onUnarchiveCase(caseData._id)}>
+                    Unarchive Case
+                  </button>
+                )
+              ) : (
+                onArchiveCase && (
+                  <button className="complete-button" onClick={() => onArchiveCase(caseData._id)}>
+                    Complete Case
+                  </button>
+                )
               )}
               {canDelete() && (
                 <button className="delete-button" onClick={handleDelete} disabled={loading}>

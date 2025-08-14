@@ -528,6 +528,40 @@
   background: #c0392b;
 }
 
+.complete-button {
+  background: #27ae60;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.complete-button:hover {
+  background: #229954;
+  transform: translateY(-1px);
+}
+
+.unarchive-button {
+  background: #f39c12;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.unarchive-button:hover {
+  background: #e67e22;
+  transform: translateY(-1px);
+}
+
 .multiselect-container {
   display: flex;
   flex-direction: column;
