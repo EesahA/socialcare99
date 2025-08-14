@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Comment from './Comment';
 import TaskForm from './TaskForm';
+import MeetingScheduler from './MeetingScheduler';
 import './CaseView.css';
 
 const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) => {
@@ -18,6 +19,9 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [caseTasks, setCaseTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
+  const [scheduledMeetings, setScheduledMeetings] = useState([]);
+  const [editingMeeting, setEditingMeeting] = useState(null);
 
   useEffect(() => {
     setCurrentCaseData(caseData);
@@ -29,6 +33,7 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
       fetchCurrentUser();
       fetchUsers();
       fetchCaseTasks();
+      fetchCaseMeetings();
     }
   }, [isOpen, caseData?._id]);
 
@@ -72,6 +77,19 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
     }
   };
 
+  const fetchCaseMeetings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:3000/api/meetings/case/${caseData.caseId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      setScheduledMeetings(response.data);
+    } catch (error) {
+      console.error('Error fetching case meetings:', error);
+    }
+  };
+
   const handleCreateTask = () => {
     setShowTaskForm(true);
   };
@@ -79,6 +97,55 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
   const handleTaskCreated = (newTask) => {
     setCaseTasks(prev => [newTask, ...prev]);
     setShowTaskForm(false);
+  };
+
+  const handleScheduleMeeting = () => {
+    setShowMeetingScheduler(true);
+  };
+
+  const handleMeetingScheduled = (meetingInfo) => {
+    // Refresh the meetings list from the backend
+    fetchCaseMeetings();
+    setShowMeetingScheduler(false);
+  };
+
+  const handleEditMeeting = (meeting) => {
+    setEditingMeeting(meeting);
+    setShowMeetingScheduler(true);
+  };
+
+  const handleDeleteMeeting = async (meetingId) => {
+    if (!window.confirm('Are you sure you want to delete this meeting?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3000/api/meetings/${meetingId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      // Refresh the meetings list
+      fetchCaseMeetings();
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      alert('Failed to delete meeting');
+    }
+  };
+
+  const formatDuration = (minutes) => {
+    if (minutes === 480) {
+      return 'Full Day';
+    } else if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    } else if (minutes % 60 === 0) {
+      const hours = minutes / 60;
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+    }
   };
 
   const fetchComments = async () => {
@@ -547,11 +614,65 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
                 )}
               </div>
 
-              {renderEditableField('Next Planned Review Date', 'nextPlannedReviewDate', currentCaseData.nextPlannedReviewDate, 'date')}
-              
               <div className="form-group">
                 <label>Meeting Schedule:</label>
-                {renderEditableField('New Tasks', 'newTasks', currentCaseData.newTasks, 'textarea')}
+                <div className="meeting-schedule-section">
+                  <button 
+                    type="button" 
+                    className="schedule-meeting-button"
+                    onClick={handleScheduleMeeting}
+                  >
+                    📅 Schedule Meeting
+                  </button>
+                  <p className="meeting-note">Schedule meetings for this case</p>
+                </div>
+                
+                {scheduledMeetings.length > 0 && (
+                  <div className="scheduled-meetings-list">
+                    {scheduledMeetings.map((meeting, index) => (
+                      <div key={meeting._id || index} className="scheduled-meeting-item">
+                        <div className="meeting-header">
+                          <h5 className="meeting-title">{meeting.title}</h5>
+                          <span className={`meeting-type meeting-type-${meeting.meetingType.toLowerCase().replace(' ', '-')}`}>
+                            {meeting.meetingType}
+                          </span>
+                          <div className="meeting-actions">
+                            <button 
+                              className="edit-meeting-btn"
+                              onClick={() => handleEditMeeting(meeting)}
+                              title="Edit meeting"
+                            >
+                              ✏️
+                            </button>
+                            <button 
+                              className="delete-meeting-btn"
+                              onClick={() => handleDeleteMeeting(meeting._id)}
+                              title="Delete meeting"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                        <div className="meeting-details">
+                          <p className="meeting-datetime">
+                            📅 {new Date(meeting.scheduledAt).toLocaleDateString()} at {new Date(meeting.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </p>
+                          <p className="meeting-duration">⏱️ {formatDuration(meeting.duration)}</p>
+                          {meeting.location && (
+                            <p className="meeting-location">📍 {meeting.location}</p>
+                          )}
+                          {meeting.attendees && (
+                            <p className="meeting-attendees">👥 {meeting.attendees}</p>
+                          )}
+                          {meeting.description && (
+                            <p className="meeting-description">{meeting.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
               </div>
             </div>
 
@@ -652,6 +773,18 @@ const CaseView = ({ caseData, isOpen, onClose, onCaseUpdated, onCaseDeleted }) =
           prefillCaseId={caseData.caseId}
           onClose={() => setShowTaskForm(false)}
           onTaskCreated={handleTaskCreated}
+        />
+      )}
+      {showMeetingScheduler && (
+        <MeetingScheduler
+          isOpen={showMeetingScheduler}
+          onClose={() => {
+            setShowMeetingScheduler(false);
+            setEditingMeeting(null);
+          }}
+          onMeetingScheduled={handleMeetingScheduled}
+          caseData={caseData}
+          editingMeeting={editingMeeting}
         />
       )}
     </div>
