@@ -10,12 +10,14 @@ const router = express.Router();
 router.get('/', auth, async (req, res) => {
   try {
     const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
+    const { archived = false } = req.query;
     
     const cases = await Case.find({
       $or: [
         { createdBy: req.user._id },
         { assignedSocialWorkers: currentUserFullName }
-      ]
+      ],
+      archived: archived === 'true'
     }).sort({ createdAt: -1 });
     
     res.json(cases);
@@ -247,6 +249,82 @@ router.delete('/:id/attachments/:filename', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting attachment:', error);
     res.status(500).json({ message: 'Failed to delete attachment' });
+  }
+});
+
+// Archive case
+router.patch('/:id/archive', auth, async (req, res) => {
+  try {
+    const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
+    
+    const caseData = await Case.findOne({
+      _id: req.params.id,
+      $or: [
+        { createdBy: req.user._id },
+        { assignedSocialWorkers: currentUserFullName }
+      ]
+    });
+    
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found or you do not have permission to archive it' });
+    }
+    
+    if (caseData.archived) {
+      return res.status(400).json({ message: 'Case is already archived' });
+    }
+    
+    const updatedCase = await Case.findByIdAndUpdate(
+      req.params.id,
+      {
+        archived: true,
+        archivedAt: new Date(),
+        archivedBy: req.user._id
+      },
+      { new: true }
+    );
+    
+    res.json(updatedCase);
+  } catch (error) {
+    console.error('Error archiving case:', error);
+    res.status(500).json({ message: 'Failed to archive case' });
+  }
+});
+
+// Unarchive case
+router.patch('/:id/unarchive', auth, async (req, res) => {
+  try {
+    const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
+    
+    const caseData = await Case.findOne({
+      _id: req.params.id,
+      $or: [
+        { createdBy: req.user._id },
+        { assignedSocialWorkers: currentUserFullName }
+      ]
+    });
+    
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found or you do not have permission to unarchive it' });
+    }
+    
+    if (!caseData.archived) {
+      return res.status(400).json({ message: 'Case is not archived' });
+    }
+    
+    const updatedCase = await Case.findByIdAndUpdate(
+      req.params.id,
+      {
+        archived: false,
+        archivedAt: null,
+        archivedBy: null
+      },
+      { new: true }
+    );
+    
+    res.json(updatedCase);
+  } catch (error) {
+    console.error('Error unarchiving case:', error);
+    res.status(500).json({ message: 'Failed to unarchive case' });
   }
 });
 
