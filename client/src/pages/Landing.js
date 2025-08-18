@@ -25,19 +25,19 @@ const Landing = () => (
       <div className="features-grid">
         <div className="feature-card">
           <h3>Task Management</h3>
-          <p>Organize and track all your care tasks efficiently</p>
+          <p>Organise and track all your care tasks efficiently</p>
         </div>
         <div className="feature-card">
-          <h3>Client Records</h3>
+          <h3>Case Management</h3>
           <p>Maintain comprehensive client information and care plans</p>
         </div>
         <div className="feature-card">
-          <h3>Staff Scheduling</h3>
-          <p>Manage staff rosters and assignments seamlessly</p>
+          <h3>Meeting Scheduling</h3>
+          <p>Schedule and manage meetings with clients and team members</p>
         </div>
         <div className="feature-card">
-          <h3>Reporting</h3>
-          <p>Generate detailed reports and analytics</p>
+          <h3>Calendar Integration</h3>
+          <p>View all tasks and meetings in one integrated calendar</p>
         </div>
       </div>
     </div>
