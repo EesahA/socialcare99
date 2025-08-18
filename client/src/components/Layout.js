@@ -7,7 +7,6 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,17 +54,6 @@ const Layout = ({ children }) => {
     navigate('/');
   };
 
-  const handleUploadAction = (action) => {
-    setShowUploadMenu(false);
-    if (action === 'create-task') {
-      console.log('Create new task clicked');
-      // Add your create task logic here
-    } else if (action === 'upload-form') {
-      console.log('Upload meeting form clicked');
-      // Add your upload form logic here
-    }
-  };
-
   const handleProfileAction = (action) => {
     setShowProfileMenu(false);
     if (action === 'settings') {
@@ -76,21 +64,14 @@ const Layout = ({ children }) => {
     }
   };
 
-  const toggleUploadMenu = () => {
-    setShowUploadMenu(!showUploadMenu);
-    setShowProfileMenu(false); // Close other menu
-  };
-
   const toggleProfileMenu = () => {
     setShowProfileMenu(!showProfileMenu);
-    setShowUploadMenu(false); // Close other menu
   };
 
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.fab-container')) {
-        setShowUploadMenu(false);
         setShowProfileMenu(false);
       }
     };
@@ -135,36 +116,6 @@ const Layout = ({ children }) => {
           </div>
           
           <div className="header-right">
-            {/* Upload Floating Action Button */}
-            <div className="fab-container">
-              <button 
-                className="fab fab-upload"
-                onClick={toggleUploadMenu}
-              >
-                <span className="fab-icon">📤</span>
-                <span className="fab-label">Upload Form</span>
-              </button>
-              
-              {showUploadMenu && (
-                <div className="fab-menu">
-                  <button 
-                    className="fab-menu-item"
-                    onClick={() => handleUploadAction('create-task')}
-                  >
-                    <span className="menu-icon">➕</span>
-                    Create New Task
-                  </button>
-                  <button 
-                    className="fab-menu-item"
-                    onClick={() => handleUploadAction('upload-form')}
-                  >
-                    <span className="menu-icon">📋</span>
-                    Upload Meeting Form
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Profile Floating Action Button */}
             <div className="fab-container">
               <button 
