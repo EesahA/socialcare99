@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Settings.css';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,6 +24,11 @@ const Settings = () => {
     newPassword: '',
     confirmPassword: ''
   });
+
+  const roleOptions = [
+    { value: 'caregiver', label: 'Caregiver' },
+    { value: 'manager', label: 'Manager' }
+  ];
 
   useEffect(() => {
     fetchUserProfile();
@@ -73,7 +80,11 @@ const Settings = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:3000/api/users/profile', profileData, {
+      const response = await axios.put('http://localhost:3000/api/users/profile', {
+        name: profileData.name,
+        email: profileData.email,
+        role: profileData.role
+      }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -146,6 +157,12 @@ const Settings = () => {
   return (
     <div className="settings-container">
       <div className="settings-header">
+        <button 
+          className="back-button"
+          onClick={() => navigate('/home')}
+        >
+          ←
+        </button>
         <h1>Settings</h1>
         <p>Manage your account settings and preferences</p>
       </div>
@@ -186,16 +203,19 @@ const Settings = () => {
 
             <div className="form-group">
               <label htmlFor="role">Role</label>
-              <input
-                type="text"
+              <select
                 id="role"
                 name="role"
                 value={profileData.role}
                 onChange={handleProfileChange}
-                placeholder="Your role"
-                readOnly
-                className="readonly-field"
-              />
+                className="form-select"
+              >
+                {roleOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button type="submit" className="save-button" disabled={saving}>

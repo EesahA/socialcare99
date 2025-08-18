@@ -21,7 +21,7 @@ router.post('/register', async (req, res) => {
       password,
       firstName,
       lastName,
-      role: role || 'caregiver'
+      role: 'caregiver' // Always assign caregiver role for new registrations
     });
 
     await user.save();
