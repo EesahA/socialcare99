@@ -34,11 +34,16 @@ router.get('/profile', auth, async (req, res) => {
 // Update user profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, role } = req.body;
     
     // Validate required fields
     if (!name || !email) {
       return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    // Validate role if provided
+    if (role && !['caregiver', 'manager'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
     }
 
     // Check if email is already taken by another user
@@ -48,13 +53,20 @@ router.put('/profile', auth, async (req, res) => {
     }
 
     // Update user profile
+    const updateData = { 
+      firstName: name.split(' ')[0] || name,
+      lastName: name.split(' ').slice(1).join(' ') || '',
+      email: email
+    };
+
+    // Allow role changes between caregiver and manager
+    if (role) {
+      updateData.role = role;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { 
-        firstName: name.split(' ')[0] || name,
-        lastName: name.split(' ').slice(1).join(' ') || '',
-        email: email
-      },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 

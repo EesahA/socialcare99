@@ -12,13 +12,20 @@ router.get('/', auth, async (req, res) => {
     const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
     const { archived = false } = req.query;
     
-    const cases = await Case.find({
-      $or: [
-        { createdBy: req.user._id },
-        { assignedSocialWorkers: currentUserFullName }
-      ],
-      archived: archived === 'true'
-    }).sort({ createdAt: -1 });
+    let cases;
+    
+    // Managers can see all cases, caregivers only see their assigned/created cases
+    if (req.user.role === 'manager') {
+      cases = await Case.find({ archived: archived === 'true' }).sort({ createdAt: -1 });
+    } else {
+      cases = await Case.find({
+        $or: [
+          { createdBy: req.user._id },
+          { assignedSocialWorkers: currentUserFullName }
+        ],
+        archived: archived === 'true'
+      }).sort({ createdAt: -1 });
+    }
     
     res.json(cases);
   } catch (error) {
@@ -31,13 +38,20 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
     
-    const caseData = await Case.findOne({
-      _id: req.params.id,
-      $or: [
-        { createdBy: req.user._id },
-        { assignedSocialWorkers: currentUserFullName }
-      ]
-    });
+    let caseData;
+    
+    // Managers can access any case, caregivers only their assigned/created cases
+    if (req.user.role === 'manager') {
+      caseData = await Case.findById(req.params.id);
+    } else {
+      caseData = await Case.findOne({
+        _id: req.params.id,
+        $or: [
+          { createdBy: req.user._id },
+          { assignedSocialWorkers: currentUserFullName }
+        ]
+      });
+    }
     
     if (!caseData) {
       return res.status(404).json({ message: 'Case not found' });
@@ -87,13 +101,20 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
     
-    const caseData = await Case.findOne({
-      _id: req.params.id,
-      $or: [
-        { createdBy: req.user._id },
-        { assignedSocialWorkers: currentUserFullName }
-      ]
-    });
+    let caseData;
+    
+    // Managers can edit any case, caregivers only their assigned/created cases
+    if (req.user.role === 'manager') {
+      caseData = await Case.findById(req.params.id);
+    } else {
+      caseData = await Case.findOne({
+        _id: req.params.id,
+        $or: [
+          { createdBy: req.user._id },
+          { assignedSocialWorkers: currentUserFullName }
+        ]
+      });
+    }
     
     if (!caseData) {
       return res.status(404).json({ message: 'Case not found or you do not have permission to edit it' });
@@ -124,10 +145,17 @@ router.put('/:id', auth, async (req, res) => {
 // Delete case (only for creator)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const caseData = await Case.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id
-    });
+    let caseData;
+    
+    // Managers can delete any case, caregivers only their created cases
+    if (req.user.role === 'manager') {
+      caseData = await Case.findById(req.params.id);
+    } else {
+      caseData = await Case.findOne({
+        _id: req.params.id,
+        createdBy: req.user._id
+      });
+    }
     
     if (!caseData) {
       return res.status(404).json({ message: 'Case not found or you do not have permission to delete it' });
@@ -151,13 +179,20 @@ router.post('/:id/upload', auth, upload.single('file'), async (req, res) => {
 
     const currentUserFullName = `${req.user.firstName} ${req.user.lastName}`;
     
-    const caseData = await Case.findOne({
-      _id: req.params.id,
-      $or: [
-        { createdBy: req.user._id },
-        { assignedSocialWorkers: currentUserFullName }
-      ]
-    });
+    let caseData;
+    
+    // Managers can upload to any case, caregivers only their assigned/created cases
+    if (req.user.role === 'manager') {
+      caseData = await Case.findById(req.params.id);
+    } else {
+      caseData = await Case.findOne({
+        _id: req.params.id,
+        $or: [
+          { createdBy: req.user._id },
+          { assignedSocialWorkers: currentUserFullName }
+        ]
+      });
+    }
     
     if (!caseData) {
       return res.status(404).json({ message: 'Case not found or you do not have permission to edit it' });
