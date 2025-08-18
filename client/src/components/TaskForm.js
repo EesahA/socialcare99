@@ -92,6 +92,10 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null, prefil
       setError('Task title is required');
       return;
     }
+    if (!formData.assignedTo) {
+      setError('Please assign the task to a team member');
+      return;
+    }
     if (!formData.dueDate) {
       setError('Due date is required');
       return;
@@ -192,7 +196,7 @@ const TaskForm = ({ isOpen, onClose, onTaskCreated, prefillStatus = null, prefil
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="assignedTo">Assigned To</label>
+              <label htmlFor="assignedTo">Assigned To *</label>
               {loadingUsers ? (
                 <select disabled>
                   <option>Loading users...</option>

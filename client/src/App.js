@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import AuthHome from './pages/AuthHome';
 import Tasks from './pages/Tasks';
 import Cases from './pages/Cases';
+import Settings from './pages/Settings';
 import './App.css';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="/home" element={<AuthHome />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/cases" element={<Cases />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </Router>

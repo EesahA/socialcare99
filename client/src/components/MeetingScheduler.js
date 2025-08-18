@@ -95,10 +95,21 @@ const MeetingScheduler = ({ isOpen, onClose, onMeetingScheduled, caseData, editi
         duration: parseInt(meetingData.duration),
         meetingType: meetingData.meetingType,
         location: meetingData.location,
-        attendees: meetingData.attendees,
-        caseId: caseData.caseId,
-        caseName: caseData.clientFullName
+        attendees: meetingData.attendees
       };
+
+      // Use existing meeting's caseId and caseName when editing, otherwise use caseData
+      if (editingMeeting) {
+        meetingInfo.caseId = editingMeeting.caseId;
+        meetingInfo.caseName = editingMeeting.caseName;
+      } else if (caseData) {
+        meetingInfo.caseId = caseData.caseId;
+        meetingInfo.caseName = caseData.clientFullName;
+      } else {
+        setError('Case information is required');
+        setLoading(false);
+        return;
+      }
 
       const token = localStorage.getItem('token');
       let response;

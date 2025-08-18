@@ -99,6 +99,24 @@
   border-top: 8px solid #3498db;
 }
 
+.required {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.pre-selected-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: 4px;
+  color: #2d5a2d;
+}
+
+.pre-selected-note small {
+  font-size: 0.85rem;
+}
+
 .case-form {
   padding: 1.5rem;
 }

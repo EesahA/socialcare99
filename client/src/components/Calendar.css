@@ -30,6 +30,33 @@
   font-weight: 600;
 }
 
+.calendar-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.refresh-button {
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover {
+  background: #229954;
+}
+
+.refresh-button:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
 .expand-button {
   background: #3498db;
   color: white;
@@ -53,6 +80,21 @@
 
 .calendar-content {
   padding: 1rem;
+  position: relative;
+}
+
+.calendar-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  font-weight: 500;
+  color: #2c3e50;
 }
 
 .calendar-content .fc {
@@ -151,5 +193,10 @@
     width: 28px;
     height: 28px;
     font-size: 1rem;
+  }
+
+  .refresh-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
   }
 } 
