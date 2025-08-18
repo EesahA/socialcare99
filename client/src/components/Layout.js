@@ -69,8 +69,7 @@ const Layout = ({ children }) => {
   const handleProfileAction = (action) => {
     setShowProfileMenu(false);
     if (action === 'settings') {
-      console.log('Settings clicked');
-      // Add your settings logic here
+      navigate('/settings');
     } else if (action === 'logout') {
       handleLogout();
     }
