@@ -44,7 +44,7 @@ const Calendar = () => {
         let backgroundColor = '#3498db'; // Default blue
         let borderColor = '#3498db';
 
-        // Color coding based on priority and status
+        // Colour coding based on priority and status
         if (isOverdue) {
           backgroundColor = '#e74c3c'; // Red for overdue
           borderColor = '#e74c3c';
