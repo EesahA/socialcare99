@@ -35,7 +35,7 @@ const Login = () => {
       // Dispatch custom event to notify Layout component
       window.dispatchEvent(new Event('userLogin'));
       
-      navigate('/home'); // Changed back to '/home' (Dashboard)
+      navigate('/home');
     } catch (error) {
       console.error('Login error:', error);
       if (error.response?.data?.error) {
