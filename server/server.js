@@ -45,6 +45,25 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API health check for Render
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    uptime: process.uptime(),
+    database: 'Connected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test route for debugging
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    routes: ['/', '/health', '/api/health', '/test']
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Social Care 365 API running on http://localhost:${PORT}`);
   console.log(` Health check: http://localhost:${PORT}/health`);
