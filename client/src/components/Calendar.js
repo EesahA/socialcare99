@@ -61,7 +61,7 @@ const Calendar = () => {
 
         // Override with status-based colors
         if (task.status === 'Completed') {
-          backgroundColor = '#95a5a6'; // Gray for completed
+          backgroundColor = '#95a5a6'; // Grey for completed
           borderColor = '#95a5a6';
         }
 
